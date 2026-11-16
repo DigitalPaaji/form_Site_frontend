@@ -141,7 +141,7 @@ const Page = () => {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="h-screen overflow-auto flex items-center justify-center bg-slate-50">
           <FiRefreshCw className="text-3xl text-blue-500 animate-spin" />
         </div>
       }
@@ -297,7 +297,7 @@ const LeadSection = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] p-4 sm:p-6 lg:p-8">
+    <div className="h-screen overflow-auto   bg-[#f8fafc] p-4 sm:p-6 lg:p-8">
       <div className="max-w-[1500px] mx-auto space-y-6">
 
         {/* Header */}

@@ -22,7 +22,7 @@ const verifyClient = async()=>{
     const data = await response.data;
   
     if(data.success){
-      console.log(data)
+     
        setUser(data.client)
        dispatch(addclient(data.client))
        setLoading(false)

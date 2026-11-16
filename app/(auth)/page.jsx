@@ -1,805 +1,840 @@
 
-// "use client";
-
-// import React, { useEffect, useState } from "react";
-// import { base_url } from "@/components/utils";
-// import axios from "axios";
-
-// import {
-//   Chart as ChartJS,
-//   CategoryScale,
-//   LinearScale,
-//   PointElement,
-//   LineElement,
-//   ArcElement,
-//   Tooltip,
-//   Legend,
-//   Filler,
-// } from "chart.js";
-
-// import { Line, Doughnut } from "react-chartjs-2";
-
-// ChartJS.register(
-//   CategoryScale,
-//   LinearScale,
-//   PointElement,
-//   LineElement,
-//   ArcElement,
-//   Tooltip,
-//   Legend,
-//   Filler
-// );
-
-// axios.defaults.withCredentials = true;
-
-// /* =========================
-//    HELPERS
-// ========================= */
-
-// const formatDate = (date) => {
-//   if (!date) return "N/A";
-
-//   return new Intl.DateTimeFormat("en-IN", {
-//     day: "2-digit",
-//     month: "short",
-//     year: "numeric",
-//     timeZone: "Asia/Kolkata",
-//   }).format(new Date(date));
-// };
-
-// const formatTime = (date) => {
-//   if (!date) return "";
-
-//   return new Intl.DateTimeFormat("en-IN", {
-//     hour: "2-digit",
-//     minute: "2-digit",
-//     hour12: true,
-//     timeZone: "Asia/Kolkata",
-//   }).format(new Date(date));
-// };
-
-// const formatDateTime = (date) => {
-//   if (!date) return "";
-
-//   return new Intl.DateTimeFormat("en-IN", {
-//     day: "2-digit",
-//     month: "short",
-//     hour: "2-digit",
-//     minute: "2-digit",
-//     hour12: true,
-//     timeZone: "Asia/Kolkata",
-//   }).format(new Date(date));
-// };
-
-// const getQrDetails = (qrUrl) => {
-//   if (!qrUrl) return {};
-
-//   try {
-//     const url = new URL(qrUrl);
-
-//     return {
-//       location: url.searchParams.get("location") || "",
-//       industry: url.searchParams.get("industry") || "",
-//       services: url.searchParams.get("services") || "",
-//       description: url.searchParams.get("desc") || "",
-//     };
-//   } catch {
-//     return {};
-//   }
-// };
-
-// /* =========================
-//    REUSABLE COMPONENTS
-// ========================= */
-
-// const StatCard = ({ title, value, icon, detail, accent }) => {
-//   return (
-//     <div className="group rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg">
-//       <div className="flex items-center justify-between">
-//         <p className="text-sm font-medium text-slate-500">{title}</p>
-
-//         <div
-//           className={`flex h-11 w-11 items-center justify-center rounded-xl text-xl ${accent}`}
-//         >
-//           {icon}
-//         </div>
-//       </div>
-
-//       <div className="mt-5">
-//         <h3 className="text-3xl font-bold tracking-tight text-slate-900">
-//           {value}
-//         </h3>
-
-//         <p className="mt-2 text-xs text-slate-400">{detail}</p>
-//       </div>
-//     </div>
-//   );
-// };
-
-// const SectionTitle = ({ title, subtitle, action }) => (
-//   <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-//     <div>
-//       <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-//       <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
-//     </div>
-//     {action}
-//   </div>
-// );
-
-// const Stars = ({ rating = 0 }) => {
-//   const safeRating = Math.max(0, Math.min(5, Number(rating) || 0));
-
-//   return (
-//     <div className="flex items-center gap-0.5">
-//       {[1, 2, 3, 4, 5].map((star) => (
-//         <span
-//           key={star}
-//           className={
-//             star <= safeRating
-//               ? "text-amber-400"
-//               : "text-slate-200"
-//           }
-//         >
-//           ★
-//         </span>
-//       ))}
-//     </div>
-//   );
-// };
-
-// /* =========================
-//    MAIN PAGE
-// ========================= */
-
-// const Page = () => {
-//   const [dashboard, setDashboard] = useState(null);
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState("");
-
-//   const fetchData = async () => {
-//     try {
-//       setLoading(true);
-//       setError("");
-
-//       const response = await axios.get(
-//         `${base_url}/client/auth/dashboard`
-//       );
-
-//       if (response.data.success) {
-//         setDashboard(response.data);
-//       } else {
-//         setError(
-//           response.data.message || "Unable to load dashboard"
-//         );
-//       }
-//     } catch (error) {
-//       console.error("Dashboard error:", error);
-
-//       setError(
-//         error.response?.data?.message ||
-//           "Something went wrong while loading dashboard."
-//       );
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   useEffect(() => {
-//     fetchData();
-//   }, []);
-
-//   /* LOADING */
-
-//   if (loading) {
-//     return (
-//       <div className="flex min-h-[75vh] items-center justify-center bg-[#F8FAFC]">
-//         <div className="text-center">
-//           <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600" />
-//           <p className="mt-4 text-sm font-medium text-slate-500">
-//             Preparing your dashboard...
-//           </p>
-//         </div>
-//       </div>
-//     );
-//   }
-
-//   /* ERROR */
-
-//   if (error) {
-//     return (
-//       <div className="flex min-h-[75vh] items-center justify-center bg-[#F8FAFC] px-4">
-//         <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-//           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-2xl">
-//             !
-//           </div>
-
-//           <h2 className="mt-4 text-lg font-bold text-slate-900">
-//             Dashboard unavailable
-//           </h2>
-
-//           <p className="mt-2 text-sm text-slate-500">{error}</p>
-
-//           <button
-//             onClick={fetchData}
-//             className="mt-6 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
-//           >
-//             Try Again
-//           </button>
-//         </div>
-//       </div>
-//     );
-//   }
-
-//   const client = dashboard?.client || {};
-//   const stats = dashboard?.stats || {};
-//   const charts = dashboard?.charts || {};
-
-//   const todayReviews = dashboard?.todayReviews || [];
-//   const recentReviews = dashboard?.recentReviews || [];
-
-//   const qrDetails = getQrDetails(client.savedQrUrl);
-
-//   /* =========================
-//      LINE CHART
-//   ========================= */
-
-//   const lineData = {
-//     labels: charts.last7Days?.map((item) => item.label) || [],
-
-//     datasets: [
-//       {
-//         label: "Reviews",
-//         data: charts.last7Days?.map((item) => item.reviews) || [],
-
-//         borderColor: "#6366F1",
-//         backgroundColor: (context) => {
-//           const chart = context.chart;
-//           const { ctx, chartArea } = chart;
-
-//           if (!chartArea) return "rgba(99,102,241,0.1)";
-
-//           const gradient = ctx.createLinearGradient(
-//             0,
-//             chartArea.top,
-//             0,
-//             chartArea.bottom
-//           );
-
-//           gradient.addColorStop(0, "rgba(99,102,241,0.25)");
-//           gradient.addColorStop(1, "rgba(99,102,241,0.01)");
-
-//           return gradient;
-//         },
-
-//         fill: true,
-//         tension: 0.4,
-//         borderWidth: 3,
-//         pointRadius: 4,
-//         pointHoverRadius: 7,
-//         pointBackgroundColor: "#6366F1",
-//         pointBorderColor: "#FFFFFF",
-//         pointBorderWidth: 2,
-//       },
-//     ],
-//   };
-
-//   const lineOptions = {
-//     responsive: true,
-//     maintainAspectRatio: false,
-
-//     interaction: {
-//       intersect: false,
-//       mode: "index",
-//     },
-
-//     plugins: {
-//       legend: {
-//         display: false,
-//       },
-
-//       tooltip: {
-//         backgroundColor: "#0F172A",
-//         titleColor: "#FFFFFF",
-//         bodyColor: "#CBD5E1",
-//         padding: 12,
-//         displayColors: false,
-//       },
-//     },
-
-//     scales: {
-//       x: {
-//         grid: {
-//           display: false,
-//         },
-//         border: {
-//           display: false,
-//         },
-//         ticks: {
-//           color: "#94A3B8",
-//           font: {
-//             size: 11,
-//           },
-//         },
-//       },
-
-//       y: {
-//         beginAtZero: true,
-//         border: {
-//           display: false,
-//           dash: [4, 4],
-//         },
-//         grid: {
-//           color: "#F1F5F9",
-//         },
-//         ticks: {
-//           precision: 0,
-//           color: "#94A3B8",
-//           padding: 10,
-//         },
-//       },
-//     },
-//   };
-
-//   /* =========================
-//      DOUGHNUT CHART
-//   ========================= */
-
-//   const ratingCounts =
-//     charts.ratingDistribution?.map((item) => item.count) ||
-//     [0, 0, 0, 0, 0];
-
-//   const doughnutData = {
-//     labels: [
-//       "1 Star",
-//       "2 Stars",
-//       "3 Stars",
-//       "4 Stars",
-//       "5 Stars",
-//     ],
-
-//     datasets: [
-//       {
-//         data: ratingCounts,
-
-//         backgroundColor: [
-//           "#EF4444",
-//           "#F97316",
-//           "#F59E0B",
-//           "#84CC16",
-//           "#10B981",
-//         ],
-
-//         borderWidth: 0,
-//         hoverOffset: 7,
-//         spacing: 3,
-//         borderRadius: 4,
-//       },
-//     ],
-//   };
-
-//   const doughnutOptions = {
-//     responsive: true,
-//     maintainAspectRatio: false,
-//     cutout: "76%",
-
-//     plugins: {
-//       legend: {
-//         display: false,
-//       },
-
-//       tooltip: {
-//         backgroundColor: "#0F172A",
-//         padding: 12,
-//       },
-//     },
-//   };
-
-//   return (
-//     <main className="h-screen overflow-auto bg-[#F8FAFC] px-4 py-6 sm:px-6 lg:px-8">
-//       <div className="mx-auto max-w-[1500px]">
-
-//         {/* ================= HEADER ================= */}
-
-//         <div className="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
-//           <div>
-//             <p className="text-xs font-bold uppercase tracking-[2px] text-indigo-600">
-//               Business Overview
-//             </p>
-
-//             <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-//               Dashboard
-//             </h1>
-
-//             <p className="mt-2 text-sm text-slate-500">
-//               Welcome back,{" "}
-//               <span className="font-semibold text-slate-700">
-//                 {client.name || "Client"}
-//               </span>
-//               . Here's what's happening with your business.
-//             </p>
-//           </div>
-
-//           <div className="flex items-center gap-3">
-//             <span
-//               className={`rounded-full px-3 py-2 text-xs font-bold ${
-//                 client.active
-//                   ? "bg-emerald-50 text-emerald-600"
-//                   : "bg-red-50 text-red-600"
-//               }`}
-//             >
-//               ● {client.active ? "Account Active" : "Account Inactive"}
-//             </span>
-
-//             <button
-//               onClick={fetchData}
-//               className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-//             >
-//               <span className="text-lg">↻</span>
-//               Refresh
-//             </button>
-//           </div>
-//         </div>
-
-//         {/* ================= BUSINESS CARD ================= */}
-
-//         <div className="relative mb-7 overflow-hidden rounded-2xl bg-gradient-to-r from-[#171B3A] via-[#252B5A] to-[#4338A8] p-6 text-white shadow-lg sm:p-8">
-//           <div className="pointer-events-none absolute -right-10 -top-24 h-72 w-72 rounded-full border-[35px] border-white/5" />
-//           <div className="pointer-events-none absolute -bottom-36 right-52 h-72 w-72 rounded-full border-[35px] border-white/5" />
-
-//           <div className="relative z-10 flex flex-col justify-between gap-6 md:flex-row md:items-center">
-//             <div>
-//               <p className="text-xs font-semibold uppercase tracking-[2px] text-indigo-200">
-//                 Your Business
-//               </p>
-
-//               <h2 className="mt-3 text-2xl font-bold sm:text-3xl">
-//                 {client.businessName || "Business"}
-//               </h2>
-
-//               <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-indigo-100">
-//                 {qrDetails.location && (
-//                   <span>📍 {qrDetails.location}</span>
-//                 )}
-
-//                 {qrDetails.industry && (
-//                   <span>• {qrDetails.industry}</span>
-//                 )}
-//               </div>
-
-//               <p className="mt-5 text-xs text-indigo-200">
-//                 QR Code:{" "}
-//                 <span className="font-semibold text-white">
-//                   {client.hasGeneratedQr ? "Generated" : "Not generated"}
-//                 </span>
-//               </p>
-//             </div>
-
-//             <div className="rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-md md:min-w-[230px]">
-//               <p className="text-xs font-medium text-indigo-100">
-//                 QR Code Expiry
-//               </p>
-
-//               <h3 className="mt-2 text-xl font-bold">
-//                 {formatDate(client.expiryDate)}
-//               </h3>
-
-//               <p className="mt-2 text-xs text-indigo-200">
-//                 Your QR code validity
-//               </p>
-//             </div>
-//           </div>
-//         </div>
-
-//         {/* ================= STATS ================= */}
-
-//         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-
-//           <StatCard
-//             title="Total Reviews"
-//             value={stats.totalReviews ?? 0}
-//             icon="💬"
-//             detail="All customer reviews"
-//             accent="bg-indigo-50"
-//           />
-
-//           <StatCard
-//             title="Today's Reviews"
-//             value={stats.todayReviews ?? 0}
-//             icon="📅"
-//             detail="Reviews received today"
-//             accent="bg-sky-50"
-//           />
-
-//           <StatCard
-//             title="Average Rating"
-//             value={`${stats.averageRating ?? 0} / 5`}
-//             icon="⭐"
-//             detail="Overall customer satisfaction"
-//             accent="bg-amber-50"
-//           />
-
-//           <StatCard
-//             title="5 Star Reviews"
-//             value={stats.fiveStarReviews ?? 0}
-//             icon="🏆"
-//             detail="Excellent customer feedback"
-//             accent="bg-emerald-50"
-//           />
-
-//           <StatCard
-//             title="This Month"
-//             value={stats.thisMonthReviews ?? 0}
-//             icon="📈"
-//             detail="Reviews this month"
-//             accent="bg-violet-50"
-//           />
-
-//           <StatCard
-//             title="Last 30 Days"
-//             value={stats.last30DaysReviews ?? 0}
-//             icon="📊"
-//             detail="Recent review activity"
-//             accent="bg-cyan-50"
-//           />
-
-//           {/* <StatCard
-//             title="4 Star Reviews"
-//             value={stats.fourStarReviews ?? 0}
-//             icon="👍"
-//             detail="Positive customer feedback"
-//             accent="bg-lime-50"
-//           />
-
-//           <StatCard
-//             title="Total Ratings"
-//             value={stats.totalReviews ?? 0}
-//             icon="🌟"
-//             detail="Customer rating submissions"
-//             accent="bg-orange-50"
-//           /> */}
-//         </div>
-
-//         {/* ================= CHARTS ================= */}
-
-//         <div className="mt-7 grid grid-cols-1 gap-6 xl:grid-cols-3">
-
-//           {/* LINE CHART */}
-
-//           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 xl:col-span-2">
-//             <SectionTitle
-//               title="Review Analytics"
-//               subtitle="Your daily review performance over the last 7 days."
-//               action={
-//                 <span className="rounded-lg bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-600">
-//                   Last 7 Days
-//                 </span>
-//               }
-//             />
-
-//             <div className="h-[280px] w-full">
-//               <Line data={lineData} options={lineOptions} />
-//             </div>
-//           </section>
-
-//           {/* DOUGHNUT */}
-
-//           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-//             <SectionTitle
-//               title="Rating Distribution"
-//               subtitle="Customer rating breakdown."
-//             />
-
-//             <div className="relative mx-auto h-[210px] max-w-[250px]">
-//               <Doughnut
-//                 data={doughnutData}
-//                 options={doughnutOptions}
-//               />
-
-//               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-//                 <h3 className="text-3xl font-bold text-slate-900">
-//                   {stats.averageRating ?? 0}
-//                 </h3>
-
-//                 <p className="mt-1 text-xs text-slate-400">
-//                   Average Rating
-//                 </p>
-//               </div>
-//             </div>
-
-//             <div className="mt-5 space-y-3">
-//               {charts.ratingDistribution?.map((item) => {
-//                 const total = stats.totalReviews || 0;
-//                 const percentage = total
-//                   ? (item.count / total) * 100
-//                   : 0;
-
-//                 const colors = {
-//                   1: "bg-red-500",
-//                   2: "bg-orange-500",
-//                   3: "bg-amber-500",
-//                   4: "bg-lime-500",
-//                   5: "bg-emerald-500",
-//                 };
-
-//                 return (
-//                   <div
-//                     key={item.rating}
-//                     className="flex items-center gap-3"
-//                   >
-//                     <span className="w-10 text-xs font-semibold text-slate-600">
-//                       {item.rating} ★
-//                     </span>
-
-//                     <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
-//                       <div
-//                         className={`h-full rounded-full ${colors[item.rating]}`}
-//                         style={{ width: `${percentage}%` }}
-//                       />
-//                     </div>
-
-//                     <span className="w-7 text-right text-xs font-semibold text-slate-500">
-//                       {item.count}
-//                     </span>
-//                   </div>
-//                 );
-//               })}
-//             </div>
-//           </section>
-//         </div>
-
-//         {/* ================= TODAY REVIEWS ================= */}
-
-//         <section className="mt-7 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-//           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-5 sm:px-6">
-//             <div>
-//               <h2 className="text-lg font-bold text-slate-900">
-//                 Today's Reviews
-//               </h2>
-
-//               <p className="mt-1 text-sm text-slate-500">
-//                 Customer feedback received today.
-//               </p>
-//             </div>
-
-//             <span className="rounded-full bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-600">
-//               {todayReviews.length} Reviews
-//             </span>
-//           </div>
-
-//           {todayReviews.length > 0 ? (
-//             <div className="divide-y divide-slate-100">
-//               {todayReviews.map((review, index) => (
-//                 <div
-//                   key={`${review.time}-${index}`}
-//                   className="flex gap-4 px-5 py-5 sm:px-6"
-//                 >
-//                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-50 text-lg">
-//                     ⭐
-//                   </div>
-
-//                   <div className="min-w-0 flex-1">
-//                     <div className="flex flex-wrap items-center gap-3">
-//                       <Stars rating={review.rating} />
-
-//                       <span className="text-xs font-bold text-slate-600">
-//                         {review.rating}/5
-//                       </span>
-
-//                       <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-600">
-//                         TODAY
-//                       </span>
-//                     </div>
-
-//                     <p className="mt-3 break-words text-sm leading-7 text-slate-600">
-//                       {review.text || "No review text available."}
-//                     </p>
-
-//                     <p className="mt-3 text-xs text-slate-400">
-//                       {formatTime(review.time)}
-//                     </p>
-//                   </div>
-//                 </div>
-//               ))}
-//             </div>
-//           ) : (
-//             <div className="px-5 py-14 text-center">
-//               <div className="text-4xl">💬</div>
-
-//               <h3 className="mt-3 font-semibold text-slate-700">
-//                 No reviews today
-//               </h3>
-
-//               <p className="mt-1 text-sm text-slate-400">
-//                 Your new customer reviews will appear here.
-//               </p>
-//             </div>
-//           )}
-//         </section>
-
-//         {/* ================= RECENT REVIEWS ================= */}
-
-//         <section className="mt-7 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-//           <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
-//             <h2 className="text-lg font-bold text-slate-900">
-//               Recent Reviews
-//             </h2>
-
-//             <p className="mt-1 text-sm text-slate-500">
-//               Latest feedback from your customers.
-//             </p>
-//           </div>
-
-//           {recentReviews.length > 0 ? (
-//             <div className="divide-y divide-slate-100">
-//               {recentReviews.map((review, index) => (
-//                 <div
-//                   key={`${review.time}-${index}`}
-//                   className="flex flex-col justify-between gap-3 px-5 py-5 sm:flex-row sm:items-center sm:px-6"
-//                 >
-//                   <div className="min-w-0 flex-1">
-//                     <div className="flex flex-wrap items-center gap-3">
-//                       <Stars rating={review.rating} />
-
-//                       <span className="text-xs font-semibold text-slate-500">
-//                         {review.rating}/5
-//                       </span>
-//                     </div>
-
-//                     <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">
-//                       {review.text || "No review text available."}
-//                     </p>
-//                   </div>
-
-//                   <p className="shrink-0 text-xs text-slate-400">
-//                     {formatDateTime(review.time)}
-//                   </p>
-//                 </div>
-//               ))}
-//             </div>
-//           ) : (
-//             <div className="px-5 py-12 text-center text-sm text-slate-400">
-//               No reviews available yet.
-//             </div>
-//           )}
-//         </section>
-
-//         {/* FOOTER */}
-
-//         <div className="mt-8 border-t border-slate-200 py-5 text-center">
-//           <p className="text-xs text-slate-400">
-//             Business Review Dashboard · All times in IST
-//           </p>
-//         </div>
-//       </div>
-//     </main>
-//   );
-// };
-// export default Page;
-
-
-
-"use client"
-
-import axios from 'axios'
-import React from 'react'
-
-const page = () => {
-
-
-const verifyFormAdmin = async ()=>{
-  try {
-    
-const response = await axios.get()
-
-
-  } catch (error) {
-    
+"use client";
+
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { base_url } from "@/components/utils";
+
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Filler,
+  Tooltip,
+  Legend,
+} from "chart.js";
+
+import { Line, Doughnut, Bar } from "react-chartjs-2";
+
+import {
+  FiFileText,
+  FiUsers,
+  FiTrendingUp,
+  FiClock,
+  FiCheckCircle,
+  FiAlertCircle,
+  FiArchive,
+  FiPlus,
+  FiArrowUpRight,
+  FiCalendar,
+  FiRefreshCw,
+  FiExternalLink,
+  FiInbox,
+  FiActivity,
+  FiEye,
+} from "react-icons/fi";
+import Link from "next/link";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Filler,
+  Tooltip,
+  Legend
+);
+
+const Dashboard = () => {
+  const [dashboard, setDashboard] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const getDashboardData = async () => {
+    try {
+      setError("");
+
+      const response = await axios.get(
+        `${base_url}/auth/dashboard`,
+        { withCredentials: true }
+      );
+
+      if (response.data.success) {
+        setDashboard(response.data.data);
+      }
+    } catch (error) {
+      console.error(error);
+      setError(
+        error.response?.data?.message ||
+        "Unable to load dashboard data"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    getDashboardData();
+  }, []);
+
+  if (loading) return <DashboardSkeleton />;
+
+  if (error) {
+    return (
+      <div className="h-screen overflow-auto bg-slate-50 flex items-center justify-center p-5">
+        <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center max-w-md w-full shadow-sm">
+          <div className="w-16 h-16 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-5">
+            <FiAlertCircle size={30} />
+          </div>
+
+          <h2 className="text-xl font-bold text-slate-800">
+            Something went wrong
+          </h2>
+
+          <p className="text-sm text-slate-500 mt-2">
+            {error}
+          </p>
+
+          <button
+            onClick={getDashboardData}
+            className="mt-6 px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-700 transition"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
   }
-}
+
+  const stats = dashboard?.stats || {};
+  const charts = dashboard?.charts || {};
+
+  const statCards = [
+    {
+      title: "Total Forms",
+      value: stats.totalForms || 0,
+      subtitle: `${stats.publishedForms || 0} published`,
+      icon: FiFileText,
+      color: "indigo",
+      gradient: "from-indigo-500 to-violet-600",
+      bg: "bg-indigo-50",
+      text: "text-indigo-600",
+    },
+    {
+      title: "Total Submissions",
+      value: stats.totalLeads || 0,
+      subtitle: `${stats.todayLeads || 0} received today`,
+      icon: FiUsers,
+      color: "blue",
+      gradient: "from-blue-500 to-cyan-500",
+      bg: "bg-blue-50",
+      text: "text-blue-600",
+    },
+    {
+      title: "New Leads",
+      value: stats.newLeads || 0,
+      subtitle: "Awaiting attention",
+      icon: FiTrendingUp,
+      color: "orange",
+      gradient: "from-orange-400 to-amber-500",
+      bg: "bg-orange-50",
+      text: "text-orange-600",
+    },
+    {
+      title: "Read Leads",
+      value: stats.readLeads || 0,
+      subtitle: "Already reviewed",
+      icon: FiCheckCircle,
+      color: "emerald",
+      gradient: "from-emerald-400 to-green-600",
+      bg: "bg-emerald-50",
+      text: "text-emerald-600",
+    },
+  ];
+
+  const lineOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: "#172033",
+        padding: 12,
+        cornerRadius: 10,
+      },
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        border: { display: false },
+        ticks: { color: "#94a3b8" },
+      },
+      y: {
+        beginAtZero: true,
+        border: { display: false, dash: [4, 4] },
+        grid: { color: "#f1f5f9" },
+        ticks: {
+          color: "#94a3b8",
+          precision: 0,
+          stepSize: 1,
+        },
+      },
+    },
+  };
+
+  const barOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: "#172033",
+        padding: 12,
+        cornerRadius: 10,
+      },
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        border: { display: false },
+        ticks: { color: "#94a3b8" },
+      },
+      y: {
+        beginAtZero: true,
+        border: { display: false },
+        grid: { color: "#f1f5f9" },
+        ticks: {
+          color: "#94a3b8",
+          precision: 0,
+          stepSize: 1,
+        },
+      },
+    },
+  };
+
+  const doughnutOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: "75%",
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        backgroundColor: "#172033",
+        padding: 12,
+        cornerRadius: 10,
+      },
+    },
+  };
+
+  const statusItems = [
+    {
+      label: "New",
+      value: stats.newLeads || 0,
+      color: "bg-indigo-500",
+    },
+    {
+      label: "Read",
+      value: stats.readLeads || 0,
+      color: "bg-emerald-500",
+    },
+    {
+      label: "Archived",
+      value: stats.archivedLeads || 0,
+      color: "bg-amber-500",
+    },
+  ];
+
+  const totalStatus =
+    statusItems.reduce((sum, item) => sum + item.value, 0);
+
+  const getInitials = (name = "") => {
+    return name
+      .split(" ")
+      .map((item) => item[0])
+      .join("")
+      .substring(0, 2)
+      .toUpperCase();
+  };
+
+  const formatDate = (date) => {
+    if (!date) return "-";
+
+    return new Date(date).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const statusStyle = {
+    new: "bg-indigo-50 text-indigo-700 border-indigo-100",
+    read: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    archived: "bg-amber-50 text-amber-700 border-amber-100",
+    published: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    draft: "bg-amber-50 text-amber-700 border-amber-100",
+    inactive: "bg-slate-100 text-slate-600 border-slate-200",
+  };
 
   return (
-    <div>page</div>
-  )
-}
+    <div className="h-screen overflow-auto bg-[#f7f8fc] p-4 sm:p-6 lg:p-8">
 
-export default page
+      <div className="max-w-[1600px] mx-auto space-y-7">
+
+        {/* HEADER */}
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+
+          <div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-indigo-600 mb-2">
+              <FiActivity />
+              OVERVIEW
+              <span className="w-1 h-1 rounded-full bg-slate-300" />
+              <span className="text-slate-400">Dashboard</span>
+            </div>
+
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
+              Welcome back!
+            </h1>
+
+            <p className="text-sm text-slate-500 mt-1">
+              Here's what's happening with your forms and submissions.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+
+            <button
+              onClick={getDashboardData}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 transition shadow-sm"
+            >
+              <FiRefreshCw />
+              Refresh
+            </button>
+
+            <Link
+             href={"/formpage/create"}
+              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-lg shadow-indigo-200 transition"
+            >
+              <FiPlus size={17} />
+              Create Form
+            </Link>
+
+          </div>
+        </div>
+
+        {/* STAT CARDS */}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+
+          {statCards.map((item, index) => {
+            const Icon = item.icon;
+
+            return (
+              <div
+                key={index}
+                className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition duration-300 relative overflow-hidden"
+              >
+                <div className={`absolute -right-8 -top-8 w-28 h-28 rounded-full opacity-[0.06] bg-gradient-to-br ${item.gradient}`} />
+
+                <div className="flex justify-between items-start relative">
+                  <div>
+                    <p className="text-sm font-medium text-slate-500">
+                      {item.title}
+                    </p>
+
+                    <h2 className="text-3xl font-bold text-slate-800 mt-3 tracking-tight">
+                      {item.value.toLocaleString("en-IN")}
+                    </h2>
+
+                    <p className="text-xs text-slate-400 mt-2">
+                      {item.subtitle}
+                    </p>
+                  </div>
+
+                  <div className={`w-12 h-12 rounded-xl ${item.bg} ${item.text} flex items-center justify-center`}>
+                    <Icon size={23} />
+                  </div>
+                </div>
+
+                <div className={`h-1 w-full rounded-full mt-5 bg-gradient-to-r ${item.gradient} opacity-80`} />
+              </div>
+            );
+          })}
+
+        </div>
+
+        {/* SECONDARY STATISTICS */}
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+          <div className="bg-white border border-slate-100 rounded-2xl p-5 flex items-center gap-4 shadow-sm">
+            <div className="w-11 h-11 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+              <FiClock size={21} />
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 font-medium">Today's Submissions</p>
+              <h3 className="text-xl font-bold text-slate-800 mt-1">
+                {stats.todayLeads || 0}
+              </h3>
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-100 rounded-2xl p-5 flex items-center gap-4 shadow-sm">
+            <div className="w-11 h-11 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center">
+              <FiArchive size={21} />
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 font-medium">Archived Leads</p>
+              <h3 className="text-xl font-bold text-slate-800 mt-1">
+                {stats.archivedLeads || 0}
+              </h3>
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-100 rounded-2xl p-5 flex items-center gap-4 shadow-sm">
+            <div className="w-11 h-11 bg-violet-50 text-violet-600 rounded-xl flex items-center justify-center">
+              <FiFileText size={21} />
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 font-medium">Draft Forms</p>
+              <h3 className="text-xl font-bold text-slate-800 mt-1">
+                {stats.draftForms || 0}
+              </h3>
+            </div>
+          </div>
+
+        </div>
+
+        {/* MAIN CHARTS */}
+
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+
+          {/* WEEKLY CHART */}
+
+          <div className="xl:col-span-2 bg-white border border-slate-100 rounded-2xl p-5 sm:p-6 shadow-sm">
+
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-base font-bold text-slate-800">
+                  Submission Overview
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Your last 7 days activity
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg font-semibold">
+                <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                Weekly
+              </div>
+            </div>
+
+            <div className="h-[280px]">
+              {charts.weeklyLeads && (
+                <Line
+                  data={charts.weeklyLeads}
+                  options={lineOptions}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* LEAD STATUS */}
+
+          <div className="bg-white border border-slate-100 rounded-2xl p-5 sm:p-6 shadow-sm">
+
+            <div className="mb-5">
+              <h3 className="text-base font-bold text-slate-800">
+                Lead Status
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Distribution of your submissions
+              </p>
+            </div>
+
+            <div className="h-[210px] relative">
+              {charts.leadStatus && (
+                <Doughnut
+                  data={charts.leadStatus}
+                  options={doughnutOptions}
+                />
+              )}
+
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <h3 className="text-3xl font-bold text-slate-800">
+                  {totalStatus}
+                </h3>
+                <span className="text-xs text-slate-400">
+                  Total Leads
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-4 mt-5">
+              {statusItems.map((item) => (
+                <div key={item.label} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2.5 h-2.5 rounded-full ${item.color}`} />
+                    <span className="text-sm text-slate-500">
+                      {item.label}
+                    </span>
+                  </div>
+
+                  <span className="text-sm font-bold text-slate-800">
+                    {item.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+          </div>
+        </div>
+
+        {/* MONTHLY + FORM STATUS */}
+
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+
+          {/* MONTHLY CHART */}
+
+          <div className="xl:col-span-2 bg-white border border-slate-100 rounded-2xl p-5 sm:p-6 shadow-sm">
+
+            <div className="mb-6">
+              <h3 className="text-base font-bold text-slate-800">
+                Monthly Performance
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Submission trends over the last 6 months
+              </p>
+            </div>
+
+            <div className="h-[280px]">
+              {charts.monthlyLeads && (
+                <Bar
+                  data={charts.monthlyLeads}
+                  options={barOptions}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* FORM STATUS */}
+
+          <div className="bg-white border border-slate-100 rounded-2xl p-5 sm:p-6 shadow-sm">
+
+            <h3 className="text-base font-bold text-slate-800">
+              Form Statistics
+            </h3>
+            <p className="text-xs text-slate-400 mt-1 mb-7">
+              Your form publishing status
+            </p>
+
+            <div className="space-y-6">
+
+              {[
+                {
+                  label: "Published",
+                  value: stats.publishedForms || 0,
+                  color: "bg-emerald-500",
+                },
+                {
+                  label: "Draft",
+                  value: stats.draftForms || 0,
+                  color: "bg-amber-500",
+                },
+                {
+                  label: "Inactive",
+                  value: stats.inactiveForms || 0,
+                  color: "bg-slate-400",
+                },
+              ].map((item) => {
+                const percentage = stats.totalForms
+                  ? (item.value / stats.totalForms) * 100
+                  : 0;
+
+                return (
+                  <div key={item.label}>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm text-slate-500">
+                        {item.label}
+                      </span>
+                      <span className="text-sm font-bold text-slate-800">
+                        {item.value}
+                      </span>
+                    </div>
+
+                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full ${item.color} rounded-full transition-all`}
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+
+            </div>
+
+            <div className="mt-8 p-4 rounded-xl bg-indigo-50 border border-indigo-100">
+              <p className="text-xs text-indigo-500 font-medium">
+                Total Created Forms
+              </p>
+              <h2 className="text-3xl font-bold text-indigo-700 mt-1">
+                {stats.totalForms || 0}
+              </h2>
+            </div>
+
+          </div>
+        </div>
+
+        {/* RECENT LEADS */}
+
+        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+
+          <div className="p-5 sm:p-6 flex items-center justify-between border-b border-slate-100">
+            <div>
+              <h3 className="text-base font-bold text-slate-800">
+                Recent Submissions
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Latest responses received from your forms
+              </p>
+            </div>
+
+            <a
+              href="/leads"
+              className="text-sm text-indigo-600 font-semibold hover:text-indigo-800 flex items-center gap-1"
+            >
+              View All <FiArrowUpRight />
+            </a>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left min-w-[700px]">
+
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase">
+                    Submission
+                  </th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase">
+                    Form
+                  </th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase">
+                    Email / Details
+                  </th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase">
+                    Date
+                  </th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-slate-100">
+
+                {(dashboard?.recentLeads || []).map((lead) => {
+                  const details = lead.submissionData || {};
+
+                  const name =
+                    details.name ||
+                    details.fullName ||
+                    "Anonymous";
+
+                  const email =
+                    details.email ||
+                    details.phone ||
+                    details["website URL"] ||
+                    "No contact details";
+
+                  return (
+                    <tr key={lead._id} className="hover:bg-slate-50/70 transition">
+
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 font-bold text-xs flex items-center justify-center">
+                            {getInitials(name)}
+                          </div>
+
+                          <div>
+                            <p className="text-sm font-semibold text-slate-800">
+                              {name}
+                            </p>
+                            <p className="text-xs text-slate-400">
+                              #{lead._id.slice(-6)}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-medium text-slate-700">
+                          {lead.formId?.title || "Deleted Form"}
+                        </p>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <p className="text-sm text-slate-500 max-w-[200px] truncate">
+                          {email}
+                        </p>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-slate-500">
+                          {formatDate(lead.createdAt)}
+                        </span>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <span className={`px-3 py-1.5 rounded-lg border text-xs font-semibold capitalize ${
+                          statusStyle[lead.status] || "bg-slate-50 text-slate-600"
+                        }`}>
+                          {lead.status}
+                        </span>
+                      </td>
+
+                    </tr>
+                  );
+                })}
+
+                {(!dashboard?.recentLeads ||
+                  dashboard.recentLeads.length === 0) && (
+                  <tr>
+                    <td colSpan="5" className="text-center py-16">
+                      <FiInbox className="mx-auto text-4xl text-slate-300 mb-3" />
+                      <p className="text-sm font-semibold text-slate-600">
+                        No submissions yet
+                      </p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Your form submissions will appear here.
+                      </p>
+                    </td>
+                  </tr>
+                )}
+
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* RECENT FORMS */}
+
+        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+
+          <div className="p-5 sm:p-6 flex items-center justify-between border-b border-slate-100">
+            <div>
+              <h3 className="text-base font-bold text-slate-800">
+                Recently Created Forms
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Manage your latest forms
+              </p>
+            </div>
+
+            <a
+              href="/forms"
+              className="text-sm font-semibold text-indigo-600 flex items-center gap-1"
+            >
+              All Forms <FiArrowUpRight />
+            </a>
+          </div>
+
+          <div className="divide-y divide-slate-100">
+
+            {(dashboard?.recentForms || []).map((form) => (
+              <div
+                key={form._id}
+                className="px-5 sm:px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/70 transition"
+              >
+
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-11 h-11 bg-violet-50 text-violet-600 rounded-xl flex items-center justify-center shrink-0">
+                    <FiFileText size={20} />
+                  </div>
+
+                  <div className="min-w-0">
+                    <h4 className="text-sm font-semibold text-slate-800 truncate">
+                      {form.title}
+                    </h4>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Created {formatDate(form.createdAt)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className={`px-3 py-1.5 rounded-lg border text-xs font-semibold capitalize ${
+                    statusStyle[form.status] || "bg-slate-50 text-slate-600"
+                  }`}>
+                    {form.status}
+                  </span>
+                </div>
+
+              </div>
+            ))}
+
+            {(!dashboard?.recentForms ||
+              dashboard.recentForms.length === 0) && (
+              <div className="text-center py-12 text-sm text-slate-400">
+                No forms created yet.
+              </div>
+            )}
+
+          </div>
+        </div>
+
+        {/* FOOTER */}
+
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-2 py-2">
+          <p className="text-xs text-slate-400">
+            Form Builder Dashboard
+          </p>
+
+          <p className="text-xs text-slate-400">
+            All your form analytics in one place.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+
+// LOADING SKELETON
+
+const DashboardSkeleton = () => {
+  return (
+    <div className="h-screen overflow-auto bg-[#f7f8fc] p-5 sm:p-8 animate-pulse">
+      <div className="max-w-[1600px] mx-auto space-y-7">
+
+        <div className="h-20 bg-white rounded-2xl" />
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+          {[1, 2, 3, 4].map((item) => (
+            <div key={item} className="h-36 bg-white rounded-2xl" />
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+          <div className="xl:col-span-2 h-[370px] bg-white rounded-2xl" />
+          <div className="h-[370px] bg-white rounded-2xl" />
+        </div>
+
+        <div className="h-[370px] bg-white rounded-2xl" />
+        <div className="h-[350px] bg-white rounded-2xl" />
+
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;

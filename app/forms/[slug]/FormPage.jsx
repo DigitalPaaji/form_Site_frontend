@@ -686,7 +686,7 @@ const FormPage = () => {
 
   return (
     <main
-      className="min-h-screen bg-[#f7f7f8] px-4 py-8 sm:px-6 sm:py-12"
+      className="min-h-screen  bg-[#f7f7f8] px-4 py-8 sm:px-6 sm:py-12"
       style={{
         backgroundColor: settings.backgroundColor || "#f7f7f8",
       }}
@@ -771,7 +771,7 @@ const FormPage = () => {
         }
       `}</style>
 
-      <div className={`w-full ${alignmentClass}`} style={{ maxWidth: `${formWidth}px` }}>
+      <div className={`w-full ${alignmentClass} `} style={{ maxWidth: `${formWidth}px` }}>
         {/* Brand header */}
         <div className="flex items-center justify-between mb-6 px-1">
           <div className="flex items-center gap-3">
@@ -781,7 +781,7 @@ const FormPage = () => {
 
             <div>
               <p className="text-sm font-bold tracking-tight text-[#292744]">
-                DIGITAL PAAJI
+                Contact
               </p>
               <p className="text-[10px] text-gray-400 uppercase tracking-[.16em] mt-0.5">
                 Online Form
@@ -1024,9 +1024,9 @@ const FormPage = () => {
             <FiGlobe size={13} />
             <span className="text-[11px]">
               Powered by{" "}
-              <span className="font-bold text-[#55516f]">
+              <a href="https://digitalpaaji.com/" target="_blank"  className="font-bold text-[#55516f]">
                 Digital Paaji
-              </span>
+              </a>
             </span>
           </div>
 
