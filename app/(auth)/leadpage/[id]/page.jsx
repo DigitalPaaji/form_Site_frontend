@@ -298,7 +298,7 @@ const LeadSection = () => {
 
   return (
     <div className="h-screen overflow-auto   bg-[#f8fafc] p-4 sm:p-6 lg:p-8">
-      <div className="max-w-[1500px] mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -495,7 +495,7 @@ const LeadSection = () => {
           {!loading && !error && leads.length > 0 && (
             <>
               {/* Desktop Table */}
-              <div className="hidden lg:block overflow-x-auto">
+              <div className="hidden lg:block overflow-x-auto max-w-6xl" >
                 <table className="w-full text-left">
                   <thead>
                     <tr className="bg-gray-50/80 border-b border-gray-100">
@@ -521,6 +521,8 @@ const LeadSection = () => {
                       </th>
                     </tr>
                   </thead>
+
+{console.log(leads)}
 
                   <tbody className="divide-y divide-gray-100">
                     {leads.map((lead, index) => {

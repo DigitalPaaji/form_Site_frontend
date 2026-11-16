@@ -361,7 +361,7 @@ const FormPage = () => {
               {field.options?.map((option, index) => (
                 <option
                   key={option._id || index}
-                  value={option.value ?? option.label}
+                  value={option.label ?? option.label}
                 >
                   {option.label}
                 </option>
