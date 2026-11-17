@@ -1,72 +1,47 @@
 "use client";
 
-import { addFormPage } from "@/components/store/clientsSlice";
-import { base_url } from "@/components/utils";
-import axios from "axios";
 import React, { useState } from "react";
-import {
-  FiPlus,
-  FiTrash2,
-  FiSettings,
-  FiEye,
-  FiSave,
-  FiX,
-  FiMove,
-  FiImage,
-} from "react-icons/fi";
+import axios from "axios";
 import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
+import { addFormPage } from "@/components/store/clientsSlice";
+import { base_url } from "@/components/utils";
+import {
+  FiType,
+  FiMail,
+  FiAlignLeft,
+  FiHash,
+  FiPhone,
+  FiCalendar,
+  FiChevronDown,
+  FiCircle,
+  FiCheckSquare,
+  FiPlus,
+  FiTrash2,
+  FiCheck,
+  FiX,
+  FiImage,
+  FiSave,
+} from "react-icons/fi";
 
-const fieldTypes = [
-  "text", "textarea", "email", "number", "phone",
-  "password", "url", "date", "time", "datetime",
-  "month", "week", "color", "range",
-  "select", "radio", "checkbox", "toggle",
-  "hidden", "heading", "paragraph", "divider",
+// -----------------------------------------
+// CONSTANTS & HELPERS
+// -----------------------------------------
+
+const FIELD_TYPES = [
+  { type: "text", label: "Text", icon: FiType },
+  { type: "email", label: "Email", icon: FiMail },
+  { type: "textarea", label: "Textarea", icon: FiAlignLeft },
+  { type: "number", label: "Number", icon: FiHash },
+  { type: "phone", label: "Phone", icon: FiPhone },
+  { type: "date", label: "Date", icon: FiCalendar },
+  { type: "select", label: "Select", icon: FiChevronDown },
+  { type: "radio", label: "Radio", icon: FiCircle },
+  { type: "checkbox", label: "Checkbox", icon: FiCheckSquare },
 ];
 
-const createField = (type = "text") => ({
-  fieldId: crypto.randomUUID(),
-  label: "New Field",
-  name: `field_${Date.now()}`,
-  type,
-  placeholder: "Enter here...",
-  defaultValue: "",
-  helpText: "",
-  required: false,
-  disabled: false,
-  readOnly: false,
-  options: ["select", "radio", "checkbox"].includes(type)
-    ? [
-        { label: "Option 1", value: "option_1" },
-        { label: "Option 2", value: "option_2" },
-      ]
-    : [],
-  validation: {
-    min: "",
-    max: "",
-    minLength: "",
-    maxLength: "",
-    accept: "",
-    multiple: false,
-  },
-  size: {
-    width: 12,
-    height: 44,
-    unit: "px",
-    rows: 4,
-  },
-  style: {
-    backgroundColor: "#ffffff",
-    textColor: "#111827",
-    borderColor: "#d1d5db",
-    borderRadius: 8,
-    fontSize: 14,
-    fontWeight: "normal",
-    alignment: "left",
-  },
-  order: 0,
-});
+const INPUT_STYLE =
+  "w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-gray-400 focus:ring-2 focus:ring-gray-100";
 
 const initialSettings = {
   columns: 12,
@@ -78,27 +53,298 @@ const initialSettings = {
   successMessage: "Form submitted successfully!",
 };
 
-export default function Page() {
-  const [title, setTitle] = useState("Untitled Form");
+const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1);
+
+const createId = () => crypto.randomUUID();
+
+const needsOptions = (type) => ["select", "radio", "checkbox"].includes(type);
+
+const createOptionValue = (label) =>
+  label
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+// Field shape matches the old (commented) code so the backend keeps working
+const createField = (type) => {
+  const id = createId();
+
+  return {
+    id, // used by this UI
+    fieldId: id, // sent to backend
+    name: `field_${Date.now()}`,
+    type,
+    label: `${capitalize(type)} field`,
+    placeholder: needsOptions(type) ? "Select an option" : `Enter ${type}...`,
+    defaultValue: "",
+    helpText: "",
+    required: false,
+    disabled: false,
+    readOnly: false,
+    options: needsOptions(type)
+      ? [
+          { id: createId(), label: "Option 1", value: "option_1" },
+          { id: createId(), label: "Option 2", value: "option_2" },
+        ]
+      : [],
+    validation: {
+      min: "",
+      max: "",
+      minLength: "",
+      maxLength: "",
+      accept: "",
+      multiple: false,
+    },
+    size: { width: 12, height: 44, unit: "px", rows: 4 },
+    style: {
+      backgroundColor: "#ffffff",
+      textColor: "#111827",
+      borderColor: "#d1d5db",
+      borderRadius: 8,
+      fontSize: 14,
+      fontWeight: "normal",
+      alignment: "left",
+    },
+    order: 0,
+  };
+};
+
+// -----------------------------------------
+// FIELD PREVIEW
+// -----------------------------------------
+
+const FieldPreview = ({ field }) => {
+  switch (field.type) {
+    case "textarea":
+      return (
+        <textarea
+          disabled
+          placeholder={field.placeholder}
+          className={`${INPUT_STYLE} min-h-24`}
+        />
+      );
+
+    case "select":
+      return (
+        <select disabled className={INPUT_STYLE} defaultValue="">
+          <option value="" disabled>
+            {field.placeholder || "Select an option"}
+          </option>
+          {field.options.map((option) => (
+            <option key={option.id} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      );
+
+    case "radio":
+    case "checkbox":
+      return (
+        <div className="space-y-3">
+          {field.options.map((option) => (
+            <label
+              key={option.id}
+              className="flex items-center gap-3 text-sm text-gray-600"
+            >
+              <input
+                disabled
+                type={field.type}
+                name={`preview-${field.id}`}
+                className="h-4 w-4 accent-gray-900"
+              />
+              {option.label}
+            </label>
+          ))}
+        </div>
+      );
+
+    default:
+      return (
+        <input
+          disabled
+          type={field.type === "phone" ? "tel" : field.type}
+          placeholder={field.placeholder}
+          className={INPUT_STYLE}
+        />
+      );
+  }
+};
+
+// -----------------------------------------
+// OPTION EDITOR
+// -----------------------------------------
+
+const OptionEditor = ({ field, onChange }) => {
+  const addOption = () => {
+    const label = `Option ${field.options.length + 1}`;
+
+    onChange([
+      ...field.options,
+      {
+        id: createId(),
+        label,
+        value: `${createOptionValue(label)}_${createId().slice(0, 5)}`,
+      },
+    ]);
+  };
+
+  const updateOption = (id, label) => {
+    onChange(
+      field.options.map((option) =>
+        option.id === id
+          ? { ...option, label, value: createOptionValue(label) || option.value }
+          : option
+      )
+    );
+  };
+
+  const deleteOption = (id) => {
+    onChange(field.options.filter((option) => option.id !== id));
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h4 className="text-sm font-semibold text-gray-800">Options</h4>
+          <p className="mt-0.5 text-xs text-gray-400">
+            Add the choices users can select
+          </p>
+        </div>
+
+        <span className="rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-500">
+          {field.options.length} options
+        </span>
+      </div>
+
+      <div className="space-y-2">
+        {field.options.map((option, index) => (
+          <div key={option.id} className="flex items-center gap-2">
+            <span className="w-5 shrink-0 text-center text-xs text-gray-400">
+              {index + 1}.
+            </span>
+
+            <input
+              value={option.label}
+              onChange={(e) => updateOption(option.id, e.target.value)}
+              placeholder={`Option ${index + 1}`}
+              className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-gray-400"
+            />
+
+            <button
+              type="button"
+              onClick={() => deleteOption(option.id)}
+              disabled={field.options.length <= 1}
+              title="Delete option"
+              className="rounded-lg p-2 text-gray-400 transition hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              <FiTrash2 size={15} />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        onClick={addOption}
+        className="flex items-center gap-2 rounded-lg border border-dashed border-gray-300 px-3 py-2 text-xs font-semibold text-gray-600 transition hover:border-gray-500 hover:bg-gray-50"
+      >
+        <FiPlus size={14} />
+        Add option
+      </button>
+    </div>
+  );
+};
+
+// -----------------------------------------
+// FIELD EDITOR
+// -----------------------------------------
+
+const FieldEditor = ({ field, onChange, onDone }) => {
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        
+        
+
+        {!["radio", "checkbox"].includes(field.type) && (
+          <div>
+            
+
+             <input
+            value={field.label}
+            onChange={(e) => onChange({ label: e.target.value })}
+            placeholder="Enter field label"
+            className="mb-1.5 block text-xs font-semibold text-gray-600"
+          />
+            <input
+              value={field.placeholder}
+              onChange={(e) => onChange({ placeholder: e.target.value })}
+              placeholder="Enter placeholder"
+              className={INPUT_STYLE}
+            />
+          </div>
+        )}
+
+      </div>
+
+      {needsOptions(field.type) && (
+        <div className="rounded-lg border border-gray-200 bg-gray-50/70 p-3">
+          <OptionEditor
+            field={field}
+            onChange={(options) => onChange({ options })}
+          />
+        </div>
+      )}
+
+      <div className="flex items-center justify-between border-t border-gray-100 pt-3">
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-600">
+          <input
+            type="checkbox"
+            checked={field.required}
+            onChange={(e) => onChange({ required: e.target.checked })}
+            className="h-4 w-4 accent-gray-900"
+          />
+          Required field
+        </label>
+
+        <button
+          type="button"
+          onClick={onDone}
+          className="flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-xs font-medium text-white transition hover:bg-gray-700"
+        >
+          <FiCheck size={14} />
+          Done
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// -----------------------------------------
+// MAIN PAGE
+// -----------------------------------------
+
+const Page = () => {
+  const dispatch = useDispatch();
+
+  const [title, setTitle] = useState("Form Title");
   const [description, setDescription] = useState("");
+  const [fields, setFields] = useState([]);
+  const [selectedId, setSelectedId] = useState(null);
 
   const [banner, setBanner] = useState(null);
   const [bannerPreview, setBannerPreview] = useState("");
 
-  const [fields, setFields] = useState([]);
-  const [settings, setSettings] = useState(initialSettings);
-  const [selectedField, setSelectedField] = useState(null);
-  const [activeTab, setActiveTab] = useState("fields");
-  const [showPreview, setShowPreview] = useState(false);
+  const [settings] = useState(initialSettings);
   const [status, setStatus] = useState("draft");
   const [saving, setSaving] = useState(false);
 
-  const dispatch = useDispatch();
-
-  // Handle banner upload
+  // ---------- Banner ----------
   const handleBannerChange = (e) => {
     const file = e.target.files?.[0];
-
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
@@ -111,115 +357,37 @@ export default function Page() {
     setBannerPreview(URL.createObjectURL(file));
   };
 
-  // Remove banner
   const removeBanner = () => {
     setBanner(null);
     setBannerPreview("");
   };
 
-  // Update field
-  const updateField = (index, key, value) => {
+  // ---------- Fields ----------
+  const addField = (type) => {
+    const newField = createField(type);
+    newField.order = fields.length;
+
+    setFields((prev) => [...prev, newField]);
+    setSelectedId(newField.id);
+  };
+
+  const updateField = (id, changes) => {
     setFields((prev) =>
-      prev.map((field, i) =>
-        i === index ? { ...field, [key]: value } : field
-      )
+      prev.map((field) => (field.id === id ? { ...field, ...changes } : field))
     );
   };
 
-  // Update nested field
-  const updateNestedField = (index, section, key, value) => {
-    setFields((prev) =>
-      prev.map((field, i) =>
-        i === index
-          ? {
-              ...field,
-              [section]: {
-                ...field[section],
-                [key]: value,
-              },
-            }
-          : field
-      )
-    );
-  };
-
-  // Add field
-  const addField = (type = "text") => {
-    const field = createField(type);
-
-    field.order = fields.length;
-
-    setFields((prev) => [...prev, field]);
-    setSelectedField(fields.length);
-    setActiveTab("fields");
-  };
-
-  // Delete field
-  const deleteField = (index) => {
+  const deleteField = (id) => {
     setFields((prev) =>
       prev
-        .filter((_, i) => i !== index)
+        .filter((field) => field.id !== id)
         .map((field, i) => ({ ...field, order: i }))
     );
 
-    setSelectedField(null);
+    if (selectedId === id) setSelectedId(null);
   };
 
-  // Update option
-  const updateOption = (index, optionIndex, key, value) => {
-    setFields((prev) =>
-      prev.map((field, i) =>
-        i === index
-          ? {
-              ...field,
-              options: field.options.map((option, j) =>
-                j === optionIndex
-                  ? { ...option, [key]: value }
-                  : option
-              ),
-            }
-          : field
-      )
-    );
-  };
-
-  // Add option
-  const addOption = (index) => {
-    setFields((prev) =>
-      prev.map((field, i) =>
-        i === index
-          ? {
-              ...field,
-              options: [
-                ...field.options,
-                {
-                  label: `Option ${field.options.length + 1}`,
-                  value: `option_${field.options.length + 1}`,
-                },
-              ],
-            }
-          : field
-      )
-    );
-  };
-
-  // Delete option
-  const removeOption = (index, optionIndex) => {
-    setFields((prev) =>
-      prev.map((field, i) =>
-        i === index
-          ? {
-              ...field,
-              options: field.options.filter(
-                (_, j) => j !== optionIndex
-              ),
-            }
-          : field
-      )
-    );
-  };
-
-  // Save form
+  // ---------- Save ----------
   const saveForm = async () => {
     if (!title.trim()) {
       toast.error("Please enter form title");
@@ -231,42 +399,60 @@ export default function Page() {
       return;
     }
 
-    if (fields.some((field) => !field.name.trim())) {
-      toast.error("Every field must have a name");
+    if (fields.length === 0) {
+      toast.error("Please add at least one field");
       return;
     }
 
-    const names = fields
-      .filter(
-        (field) =>
-          !["heading", "paragraph", "divider"].includes(field.type)
-      )
-      .map((field) => field.name.trim());
+    const invalidField = fields.find(
+      (field) =>
+        !field.label.trim() ||
+        !field.name.trim() ||
+        (needsOptions(field.type) &&
+          (field.options.length === 0 ||
+            field.options.some((option) => !option.label.trim())))
+    );
 
+    if (invalidField) {
+      toast.error("Please complete all field labels, names and options");
+      setSelectedId(invalidField.id);
+      return;
+    }
+
+    const names = fields.map((field) => field.name.trim());
     if (new Set(names).size !== names.length) {
       toast.error("Field names must be unique");
       return;
     }
+
+    const preparedFields = fields.map((field, index) => ({
+      ...field,
+      name: field.name.trim(),
+      label: field.label.trim(),
+      order: index,
+      options: needsOptions(field.type)
+        ? field.options.map((option) => ({
+            ...option,
+            label: option.label.trim(),
+          }))
+        : [],
+    }));
 
     setSaving(true);
 
     try {
       const formData = new FormData();
 
-      formData.append("title", title);
-      formData.append("description", description);
-      formData.append("fields", JSON.stringify(fields));
+      formData.append("title", title.trim());
+      formData.append("description", description.trim());
+      formData.append("fields", JSON.stringify(preparedFields));
       formData.append("settings", JSON.stringify(settings));
       formData.append("status", status);
       formData.append("banner", banner);
 
-      const response = await axios.post(
-        `${base_url}/auth/create`,
-        formData,
-        {
-          withCredentials: true,
-        }
-      );
+      const response = await axios.post(`${base_url}/auth/create`, formData, {
+        withCredentials: true,
+      });
 
       const data = response.data;
 
@@ -277,999 +463,259 @@ export default function Page() {
         toast.error(data.message || "Something went wrong");
       }
     } catch (error) {
-      toast.error(
-        error?.response?.data?.message || "Unable to save form"
-      );
+      toast.error(error?.response?.data?.message || "Unable to save form");
     } finally {
       setSaving(false);
     }
   };
 
-  const selected =
-    selectedField !== null ? fields[selectedField] : null;
-
-  // Render field
-  const renderField = (field) => {
-    const commonStyle = {
-      width: "100%",
-      height:
-        field.type === "textarea"
-          ? "auto"
-          : `${field.size.height}${field.size.unit}`,
-      minHeight:
-        field.type === "textarea"
-          ? `${field.size.height}${field.size.unit}`
-          : undefined,
-      backgroundColor: field.style.backgroundColor,
-      color: field.style.textColor,
-      borderColor: field.style.borderColor,
-      borderRadius: `${field.style.borderRadius}px`,
-      fontSize: `${field.style.fontSize}px`,
-      textAlign: field.style.alignment,
-    };
-
-    if (field.type === "divider") {
-      return <hr className="my-3 border-gray-300" />;
-    }
-
-    if (field.type === "heading") {
-      return <h3 className="text-xl font-bold">{field.label}</h3>;
-    }
-
-    if (field.type === "paragraph") {
-      return (
-        <p className="text-sm text-gray-500">{field.helpText}</p>
-      );
-    }
-
-    if (field.type === "hidden") return null;
-
-    return (
-      <div className="w-full space-y-2">
-        <label className="block text-sm font-semibold text-gray-700">
-          {field.label}
-          {field.required && (
-            <span className="ml-1 text-red-500">*</span>
-          )}
-        </label>
-
-        {[
-          "text", "email", "number", "phone", "password",
-          "url", "date", "time", "datetime", "month",
-          "week", "color", "range",
-        ].includes(field.type) && (
-          <input
-            type={
-              field.type === "phone"
-                ? "tel"
-                : field.type === "datetime"
-                ? "datetime-local"
-                : field.type
-            }
-            placeholder={field.placeholder}
-            defaultValue={field.defaultValue}
-            disabled={field.disabled}
-            readOnly={field.readOnly}
-            required={field.required}
-            min={field.validation.min || undefined}
-            max={field.validation.max || undefined}
-            minLength={field.validation.minLength || undefined}
-            maxLength={field.validation.maxLength || undefined}
-            style={commonStyle}
-            className="border px-3 outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        )}
-
-        {field.type === "textarea" && (
-          <textarea
-            placeholder={field.placeholder}
-            defaultValue={field.defaultValue}
-            rows={field.size.rows}
-            disabled={field.disabled}
-            readOnly={field.readOnly}
-            required={field.required}
-            style={commonStyle}
-            className="w-full border p-3 outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        )}
-
-        {field.type === "select" && (
-          <select
-            required={field.required}
-            disabled={field.disabled}
-            defaultValue=""
-            style={commonStyle}
-            className="border px-3 outline-none"
-          >
-            <option value="">Select an option</option>
-            {field.options.map((option, i) => (
-              <option key={i} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        )}
-
-        {(field.type === "radio" ||
-          field.type === "checkbox") && (
-          <div className="space-y-2">
-            {field.options.map((option, i) => (
-              <label
-                key={i}
-                className="flex items-center gap-2 text-sm"
-              >
-                <input
-                  type={field.type}
-                  name={
-                    field.type === "radio"
-                      ? field.name
-                      : `${field.name}[]`
-                  }
-                  value={option.value}
-                  required={field.required && i === 0}
-                  disabled={field.disabled}
-                />
-                {option.label}
-              </label>
-            ))}
-          </div>
-        )}
-
-        {field.type === "toggle" && (
-          <label className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              disabled={field.disabled}
-              defaultChecked={field.defaultValue === "true"}
-              className="h-5 w-5 accent-blue-600"
-            />
-            <span className="text-sm text-gray-600">
-              {field.helpText}
-            </span>
-          </label>
-        )}
-
-        {field.helpText &&
-          !["paragraph", "toggle"].includes(field.type) && (
-            <p className="text-xs text-gray-500">{field.helpText}</p>
-          )}
-      </div>
-    );
-  };
-
   return (
-    <div className="h-screen overflow-auto bg-gray-100 text-gray-900">
-
-      {/* Header */}
-      <header className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b bg-white px-4 py-3 shadow-sm md:px-7">
-        <div>
-          <h1 className="text-lg font-bold">Form Builder</h1>
-          <p className="text-xs text-gray-500">
-            Create your custom form
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => setShowPreview(true)}
-            className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium hover:bg-gray-50"
-          >
-            <FiEye /> Preview
-          </button>
-
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="rounded-lg border bg-white px-3 py-2 text-sm"
-          >
-            <option value="draft">Draft</option>
-            <option value="published">Published</option>
-          </select>
-
-          <button
-            onClick={saveForm}
-            disabled={saving}
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            <FiSave />
-            {saving ? "Saving..." : "Save Form"}
-          </button>
-        </div>
-      </header>
-
-      <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-5 p-4 lg:grid-cols-[250px_minmax(0,1fr)_320px] lg:p-6">
-
-        {/* Left Sidebar */}
-        <aside className="h-fit rounded-xl border bg-white p-4">
-          <h2 className="mb-4 font-bold">Add Fields</h2>
-
-          <div className="grid grid-cols-2 gap-2">
-            {fieldTypes.map((type) => (
-              <button
-                key={type}
-                onClick={() => addField(type)}
-                className="flex items-center justify-between rounded-lg border p-2.5 text-left text-xs font-medium capitalize transition hover:border-blue-500 hover:bg-blue-50 hover:text-blue-700"
-              >
-                {type}
-                <FiPlus />
-              </button>
-            ))}
+    <div className="h-screen overflow-auto bg-gray-50 p-4 md:p-7">
+      <div className="mx-auto max-w-7xl">
+        {/* Header */}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">Form Builder</h1>
+            <p className="mt-1 text-sm text-gray-500">
+              Create and customize your form
+            </p>
           </div>
 
-          <div className="mt-6 border-t pt-4">
-            <h3 className="mb-3 text-sm font-bold">Configuration</h3>
+          <div className="flex items-center gap-2">
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none"
+            >
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+            </select>
 
             <button
-              onClick={() => setActiveTab("settings")}
-              className={`flex w-full items-center gap-2 rounded-lg p-3 text-sm ${
-                activeTab === "settings"
-                  ? "bg-blue-50 text-blue-700"
-                  : "hover:bg-gray-100"
-              }`}
+              type="button"
+              onClick={saveForm}
+              disabled={saving}
+              className="flex items-center gap-2 rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-gray-700 disabled:opacity-50"
             >
-              <FiSettings /> Layout & Appearance
-            </button>
-
-            <button
-              onClick={() => setActiveTab("fields")}
-              className={`mt-2 flex w-full items-center gap-2 rounded-lg p-3 text-sm ${
-                activeTab === "fields"
-                  ? "bg-blue-50 text-blue-700"
-                  : "hover:bg-gray-100"
-              }`}
-            >
-              <FiMove /> Field Properties
+              <FiSave size={15} />
+              {saving ? "Saving..." : "Save form"}
             </button>
           </div>
-        </aside>
+        </div>
 
-        {/* Main Form Builder */}
-        <main className="min-w-0">
-          <div
-            className="mx-auto space-y-5 rounded-xl border bg-white p-5 shadow-sm md:p-8"
-            style={{
-              maxWidth: settings.formWidth,
-              backgroundColor: settings.backgroundColor,
-            }}
-          >
-            {/* Form Title */}
-            <div className="border-b pb-5">
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full bg-transparent text-2xl font-bold outline-none md:text-3xl"
-                placeholder="Untitled Form"
-              />
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[230px_minmax(0,1fr)]">
+          {/* Sidebar */}
+          <aside className="sticky top-3 h-fit rounded-xl border border-gray-200 bg-white p-4">
+            <h2 className="font-semibold text-gray-800">Add fields</h2>
+            <p className="mb-4 mt-1 text-xs text-gray-400">
+              Select a field type
+            </p>
 
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Add a description..."
-                className="mt-3 w-full resize-none bg-transparent text-sm text-gray-500 outline-none"
-                rows={2}
-              />
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
+              {FIELD_TYPES.map(({ type, label, icon: Icon }) => (
+                <button
+                  type="button"
+                  key={type}
+                  onClick={() => addField(type)}
+                  className="flex items-center gap-3 rounded-lg border border-gray-100 p-3 text-left transition hover:border-gray-300 hover:bg-gray-50"
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
+                    <Icon size={16} />
+                  </span>
+                  <span className="text-sm font-medium text-gray-700">
+                    {label}
+                  </span>
+                </button>
+              ))}
             </div>
+          </aside>
 
-            {/* Banner Upload */}
-            <div className="space-y-3 border-b pb-5">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-semibold text-gray-700">
-                  Form Banner <span className="text-red-500">*</span>
-                </label>
+          {/* Form Canvas */}
+          <main className="min-h-[650px] rounded-xl border border-gray-200 bg-white p-5 md:p-8">
+            <div className="mx-auto max-w-2xl">
+              {/* Title + description */}
+              <div className="mb-6 border-b border-gray-100 pb-6">
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Form title"
+                  className="w-full border-0 bg-transparent text-2xl font-bold text-gray-800 outline-none"
+                />
+
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  onFocus={() => setSelectedId(null)}
+                  placeholder="Write a short description..."
+                  rows={2}
+                  className="mt-3 w-full resize-none border-0 bg-transparent text-sm text-gray-500 outline-none"
+                />
+              </div>
+
+              {/* Banner */}
+              <div className="mb-8 border-b border-gray-100 pb-6">
+                <div className="mb-3 flex items-center justify-between">
+                  <label className="text-sm font-semibold text-gray-700">
+                    Form banner <span className="text-red-500">*</span>
+                  </label>
+
+                  {banner && (
+                    <button
+                      type="button"
+                      onClick={removeBanner}
+                      className="flex items-center gap-1 text-xs font-medium text-red-500 hover:text-red-700"
+                    >
+                      <FiTrash2 size={13} /> Remove
+                    </button>
+                  )}
+                </div>
+
+                {bannerPreview ? (
+                  <div className="overflow-hidden rounded-xl border border-gray-200">
+                    <img
+                      src={bannerPreview}
+                      alt="Form banner preview"
+                      className="h-48 w-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 px-4 py-10 transition hover:border-gray-400 hover:bg-gray-50">
+                    <FiImage className="mb-3 text-3xl text-gray-300" />
+                    <span className="text-sm font-medium text-gray-700">
+                      Click to upload banner
+                    </span>
+                    <span className="mt-1 text-xs text-gray-400">
+                      PNG, JPG or WEBP
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleBannerChange}
+                      className="hidden"
+                    />
+                  </label>
+                )}
 
                 {banner && (
-                  <button
-                    type="button"
-                    onClick={removeBanner}
-                    className="flex items-center gap-1 text-xs font-medium text-red-500 hover:text-red-700"
-                  >
-                    <FiTrash2 /> Remove
-                  </button>
+                  <p className="mt-2 text-xs text-green-600">
+                    Selected: {banner.name}
+                  </p>
                 )}
               </div>
 
-              {bannerPreview ? (
-                <div className="relative overflow-hidden rounded-xl border">
-                  <img
-                    src={bannerPreview}
-                    alt="Form banner preview"
-                    className="h-48 w-full object-cover"
-                  />
-
-                  <button
-                    type="button"
-                    onClick={removeBanner}
-                    className="absolute right-3 top-3 rounded-lg bg-white p-2 text-red-500 shadow-md hover:bg-red-50"
-                  >
-                    <FiX />
-                  </button>
-                </div>
-              ) : (
-                <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-10 transition hover:border-blue-400 hover:bg-blue-50/50">
-                  <FiImage className="mb-3 text-3xl text-gray-400" />
-
-                  <span className="text-sm font-semibold text-gray-700">
-                    Click to upload banner
-                  </span>
-
-                  <span className="mt-1 text-xs text-gray-400">
-                    PNG, JPG, WEBP or other image formats
-                  </span>
-
-                  <input
-                    type="file"
-                    accept="image/*"
-                    required
-                    onChange={handleBannerChange}
-                    className="hidden"
-                  />
-                </label>
-              )}
-
-              {banner && (
-                <p className="text-xs text-green-600">
-                  Selected: {banner.name}
-                </p>
-              )}
-            </div>
-
-            {/* Form Fields */}
-            <div
-              className="grid grid-cols-12 gap-4"
-              style={{
-                gridTemplateColumns: `repeat(${settings.columns}, minmax(0, 1fr))`,
-              }}
-            >
-              {fields.map((field, index) => (
-                <div
-                  key={field.fieldId}
-                  onClick={() => {
-                    setSelectedField(index);
-                    setActiveTab("fields");
-                  }}
-                  style={{
-                    gridColumn: `span ${Math.min(
-                      field.size.width,
-                      settings.columns
-                    )}`,
-                  }}
-                  className={`group relative min-w-0 cursor-pointer rounded-xl border-2 p-4 transition ${
-                    selectedField === index
-                      ? "border-blue-500 bg-blue-50/30"
-                      : "border-transparent hover:border-gray-200"
-                  }`}
-                >
-                  <div className="absolute right-2 top-2 hidden gap-1 group-hover:flex">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteField(index);
-                      }}
-                      className="rounded-md bg-white p-2 text-red-500 shadow hover:bg-red-50"
-                    >
-                      <FiTrash2 />
-                    </button>
+              {/* Fields */}
+              <div className="space-y-4">
+                {fields.length === 0 && (
+                  <div className="flex min-h-64 flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 text-center">
+                    <FiPlus className="mb-3 text-3xl text-gray-300" />
+                    <p className="font-medium text-gray-700">No fields yet</p>
+                    <p className="mt-1 text-sm text-gray-400">
+                      Pick a field type from the sidebar
+                    </p>
                   </div>
+                )}
 
-                  {renderField(field)}
-                </div>
-              ))}
-            </div>
+                {fields.map((field, index) => {
+                  const isSelected = selectedId === field.id;
 
-            {fields.length === 0 && (
-              <div className="rounded-xl border-2 border-dashed border-gray-300 py-16 text-center">
-                <FiPlus className="mx-auto mb-3 text-3xl text-gray-400" />
+                  return (
+                    <div
+                      key={field.id}
+                      onClick={() => setSelectedId(field.id)}
+                      className={`rounded-xl border p-4 transition ${
+                        isSelected
+                          ? "border-gray-800 bg-white shadow-sm"
+                          : "cursor-pointer border-gray-200 hover:border-gray-400"
+                      }`}
+                    >
+                      {/* Field header */}
+                      <div className="mb-4 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gray-100 text-xs font-semibold text-gray-600">
+                            {index + 1}
+                          </span>
 
-                <h3 className="font-semibold">
-                  Start building your form
-                </h3>
+                          <span className="text-xs font-medium text-gray-400">
+                            {capitalize(field.type)}
+                          </span>
 
-                <p className="mt-1 text-sm text-gray-500">
-                  Select any field from the left sidebar.
-                </p>
-              </div>
-            )}
+                          {field.required && (
+                            <span className="rounded bg-red-50 px-2 py-1 text-[10px] font-medium text-red-500">
+                              Required
+                            </span>
+                          )}
+                        </div>
 
-            {/* Submit Button */}
-            <div className="border-t pt-5">
-              <button
-                style={{
-                  backgroundColor: settings.submitButtonColor,
-                }}
-                className="rounded-lg px-7 py-3 text-sm font-semibold text-white"
-              >
-                {settings.submitButtonText}
-              </button>
-            </div>
-          </div>
-        </main>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedId(isSelected ? null : field.id);
+                            }}
+                            title="Edit field"
+                            className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-800"
+                          >
+                            {isSelected ? <FiX size={16} /> : <FiType size={16} />}
+                          </button>
 
-        {/* Right Properties Sidebar */}
-        <aside className="h-fit rounded-xl border bg-white p-4">
-          {activeTab === "settings" ? (
-            <div className="space-y-4">
-              <h2 className="font-bold">Form Appearance</h2>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteField(field.id);
+                            }}
+                            title="Delete field"
+                            className="rounded-lg p-2 text-gray-400 transition hover:bg-red-50 hover:text-red-500"
+                          >
+                            <FiTrash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
 
-              <div>
-                <label className="text-xs font-semibold">
-                  Form Width (px)
-                </label>
+                      {/* Editor / Preview */}
+                      {isSelected ? (
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <FieldEditor
+                            field={field}
+                            onChange={(changes) => updateField(field.id, changes)}
+                            onDone={() => setSelectedId(null)}
+                          />
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="mb-2 block text-sm font-semibold text-gray-700">
+                            {field.label || "Untitled field"}
+                            {field.required && (
+                              <span className="ml-1 text-red-500">*</span>
+                            )}
+                          </label>
 
-                <input
-                  type="number"
-                  min="300"
-                  max="1400"
-                  value={settings.formWidth}
-                  onChange={(e) =>
-                    setSettings({
-                      ...settings,
-                      formWidth: Number(e.target.value),
-                    })
-                  }
-                  className="mt-1 w-full rounded-lg border p-2"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold">
-                  Grid Columns
-                </label>
-
-                <select
-                  value={settings.columns}
-                  onChange={(e) =>
-                    setSettings({
-                      ...settings,
-                      columns: Number(e.target.value),
-                    })
-                  }
-                  className="mt-1 w-full rounded-lg border p-2"
-                >
-                  {[1, 2, 3, 4, 6, 12].map((n) => (
-                    <option key={n} value={n}>
-                      {n} Columns
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold">
-                  Background Color
-                </label>
-
-                <input
-                  type="color"
-                  value={settings.backgroundColor}
-                  onChange={(e) =>
-                    setSettings({
-                      ...settings,
-                      backgroundColor: e.target.value,
-                    })
-                  }
-                  className="mt-1 h-10 w-full cursor-pointer rounded-lg border p-1"
-                />
+                          <FieldPreview field={field} />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
-              <div>
-                <label className="text-xs font-semibold">
-                  Form Alignment
-                </label>
-
-                <select
-                  value={settings.formAlignment}
-                  onChange={(e) =>
-                    setSettings({
-                      ...settings,
-                      formAlignment: e.target.value,
-                    })
-                  }
-                  className="mt-1 w-full rounded-lg border p-2"
-                >
-                  <option value="left">Left</option>
-                  <option value="center">Center</option>
-                  <option value="right">Right</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold">
-                  Button Text
-                </label>
-
-                <input
-                  value={settings.submitButtonText}
-                  onChange={(e) =>
-                    setSettings({
-                      ...settings,
-                      submitButtonText: e.target.value,
-                    })
-                  }
-                  className="mt-1 w-full rounded-lg border p-2"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold">
-                  Button Color
-                </label>
-
-                <input
-                  type="color"
-                  value={settings.submitButtonColor}
-                  onChange={(e) =>
-                    setSettings({
-                      ...settings,
-                      submitButtonColor: e.target.value,
-                    })
-                  }
-                  className="mt-1 h-10 w-full cursor-pointer rounded-lg border p-1"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold">
-                  Success Message
-                </label>
-
-                <textarea
-                  value={settings.successMessage}
-                  onChange={(e) =>
-                    setSettings({
-                      ...settings,
-                      successMessage: e.target.value,
-                    })
-                  }
-                  className="mt-1 w-full rounded-lg border p-2"
-                />
-              </div>
-            </div>
-          ) : selected ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="font-bold">Field Properties</h2>
-
+              {/* Bottom add field */}
+              {fields.length > 0 && (
                 <button
-                  onClick={() => setSelectedField(null)}
-                  className="rounded-md p-1 hover:bg-gray-100"
+                  type="button"
+                  onClick={() => addField("text")}
+                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-gray-300 py-3 text-sm font-medium text-gray-500 transition hover:border-gray-500 hover:bg-gray-50 hover:text-gray-800"
                 >
-                  <FiX />
+                  <FiPlus size={16} />
+                  Add another field
                 </button>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold">
-                  Field Type
-                </label>
-
-                <select
-                  value={selected.type}
-                  onChange={(e) => {
-                    const newType = e.target.value;
-                    const newField = createField(newType);
-
-                    setFields((prev) =>
-                      prev.map((field, i) =>
-                        i === selectedField
-                          ? {
-                              ...field,
-                              type: newType,
-                              options: newField.options,
-                            }
-                          : field
-                      )
-                    );
-                  }}
-                  className="mt-1 w-full rounded-lg border p-2 text-sm"
-                >
-                  {fieldTypes.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold">Label</label>
-
-                <input
-                  value={selected.label}
-                  onChange={(e) =>
-                    updateField(selectedField, "label", e.target.value)
-                  }
-                  className="mt-1 w-full rounded-lg border p-2 text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold">Field Name</label>
-
-                <input
-                  value={selected.name}
-                  onChange={(e) =>
-                    updateField(selectedField, "name", e.target.value)
-                  }
-                  className="mt-1 w-full rounded-lg border p-2 text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold">Placeholder</label>
-
-                <input
-                  value={selected.placeholder}
-                  onChange={(e) =>
-                    updateField(selectedField, "placeholder", e.target.value)
-                  }
-                  className="mt-1 w-full rounded-lg border p-2 text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold">
-                  Default Value
-                </label>
-
-                <input
-                  value={selected.defaultValue}
-                  onChange={(e) =>
-                    updateField(selectedField, "defaultValue", e.target.value)
-                  }
-                  className="mt-1 w-full rounded-lg border p-2 text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold">Help Text</label>
-
-                <input
-                  value={selected.helpText}
-                  onChange={(e) =>
-                    updateField(selectedField, "helpText", e.target.value)
-                  }
-                  className="mt-1 w-full rounded-lg border p-2 text-sm"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold">
-                    Width (1-12)
-                  </label>
-
-                  <input
-                    type="number"
-                    min="1"
-                    max="12"
-                    value={selected.size.width}
-                    onChange={(e) =>
-                      updateNestedField(
-                        selectedField,
-                        "size",
-                        "width",
-                        Math.min(12, Math.max(1, Number(e.target.value)))
-                      )
-                    }
-                    className="mt-1 w-full rounded-lg border p-2"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold">Height</label>
-
-                  <input
-                    type="number"
-                    min="1"
-                    value={selected.size.height}
-                    onChange={(e) =>
-                      updateNestedField(
-                        selectedField,
-                        "size",
-                        "height",
-                        Number(e.target.value)
-                      )
-                    }
-                    className="mt-1 w-full rounded-lg border p-2"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold">Height Unit</label>
-
-                <select
-                  value={selected.size.unit}
-                  onChange={(e) =>
-                    updateNestedField(
-                      selectedField,
-                      "size",
-                      "unit",
-                      e.target.value
-                    )
-                  }
-                  className="mt-1 w-full rounded-lg border p-2"
-                >
-                  <option value="px">Pixels (px)</option>
-                  <option value="rem">REM</option>
-                  <option value="%">Percentage (%)</option>
-                </select>
-              </div>
-
-              {selected.type === "textarea" && (
-                <div>
-                  <label className="text-xs font-semibold">
-                    Textarea Rows
-                  </label>
-
-                  <input
-                    type="number"
-                    min="1"
-                    value={selected.size.rows}
-                    onChange={(e) =>
-                      updateNestedField(
-                        selectedField,
-                        "size",
-                        "rows",
-                        Number(e.target.value)
-                      )
-                    }
-                    className="mt-1 w-full rounded-lg border p-2"
-                  />
-                </div>
               )}
-
-              {["select", "radio", "checkbox"].includes(selected.type) && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold">Options</label>
-
-                    <button
-                      onClick={() => addOption(selectedField)}
-                      className="flex items-center gap-1 text-xs font-semibold text-blue-600"
-                    >
-                      <FiPlus /> Add Option
-                    </button>
-                  </div>
-
-                  {selected.options.map((option, i) => (
-                    <div key={i} className="flex gap-2">
-                      <input
-                        value={option.label}
-                        onChange={(e) =>
-                          updateOption(
-                            selectedField,
-                            i,
-                            "label",
-                            e.target.value
-                          )
-                        }
-                        placeholder="Label"
-                        className="min-w-0 flex-1 rounded-lg border p-2 text-xs"
-                      />
-
-                      <button
-                        onClick={() => removeOption(selectedField, i)}
-                        className="rounded-lg border p-2 text-red-500"
-                      >
-                        <FiTrash2 />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {["number", "range"].includes(selected.type) && (
-                <div className="grid grid-cols-2 gap-2">
-                  {["min", "max"].map((key) => (
-                    <div key={key}>
-                      <label className="text-xs font-semibold capitalize">
-                        {key}
-                      </label>
-
-                      <input
-                        type="number"
-                        value={selected.validation[key]}
-                        onChange={(e) =>
-                          updateNestedField(
-                            selectedField,
-                            "validation",
-                            key,
-                            e.target.value
-                          )
-                        }
-                        className="mt-1 w-full rounded-lg border p-2"
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="space-y-3 border-t pt-4">
-                {[
-                  ["required", "Required"],
-                  ["disabled", "Disabled"],
-                  ["readOnly", "Read Only"],
-                ].map(([key, label]) => (
-                  <label
-                    key={key}
-                    className="flex items-center justify-between text-sm"
-                  >
-                    {label}
-
-                    <input
-                      type="checkbox"
-                      checked={selected[key]}
-                      onChange={(e) =>
-                        updateField(selectedField, key, e.target.checked)
-                      }
-                      className="h-4 w-4 accent-blue-600"
-                    />
-                  </label>
-                ))}
-              </div>
-
-              <div className="border-t pt-4">
-                <h3 className="mb-3 text-sm font-bold">Field Styling</h3>
-
-                {[
-                  ["backgroundColor", "Background"],
-                  ["textColor", "Text Color"],
-                  ["borderColor", "Border Color"],
-                ].map(([key, label]) => (
-                  <div key={key} className="mb-3">
-                    <label className="text-xs font-semibold">{label}</label>
-
-                    <input
-                      type="color"
-                      value={selected.style[key]}
-                      onChange={(e) =>
-                        updateNestedField(
-                          selectedField,
-                          "style",
-                          key,
-                          e.target.value
-                        )
-                      }
-                      className="mt-1 h-9 w-full cursor-pointer rounded-lg border p-1"
-                    />
-                  </div>
-                ))}
-
-                <div>
-                  <label className="text-xs font-semibold">
-                    Border Radius
-                  </label>
-
-                  <input
-                    type="number"
-                    min="0"
-                    value={selected.style.borderRadius}
-                    onChange={(e) =>
-                      updateNestedField(
-                        selectedField,
-                        "style",
-                        "borderRadius",
-                        Number(e.target.value)
-                      )
-                    }
-                    className="mt-1 w-full rounded-lg border p-2"
-                  />
-                </div>
-
-                <div className="mt-3">
-                  <label className="text-xs font-semibold">Font Size</label>
-
-                  <input
-                    type="number"
-                    min="8"
-                    value={selected.style.fontSize}
-                    onChange={(e) =>
-                      updateNestedField(
-                        selectedField,
-                        "style",
-                        "fontSize",
-                        Number(e.target.value)
-                      )
-                    }
-                    className="mt-1 w-full rounded-lg border p-2"
-                  />
-                </div>
-              </div>
-
-              <button
-                onClick={() => deleteField(selectedField)}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 p-2.5 text-sm font-semibold text-red-600 hover:bg-red-100"
-              >
-                <FiTrash2 /> Delete Field
-              </button>
             </div>
-          ) : (
-            <div className="py-10 text-center">
-              <FiSettings className="mx-auto mb-3 text-3xl text-gray-300" />
-
-              <h3 className="font-semibold">No Field Selected</h3>
-
-              <p className="mt-1 text-xs text-gray-500">
-                Select a field to customize its properties.
-              </p>
-            </div>
-          )}
-        </aside>
-      </div>
-
-      {/* Preview Modal */}
-      {showPreview && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 p-4">
-          <div className="mx-auto my-10 max-w-3xl rounded-2xl bg-white p-5 shadow-xl md:p-8">
-            <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-lg font-bold">Form Preview</h2>
-
-              <button
-                onClick={() => setShowPreview(false)}
-                className="rounded-lg border p-2 hover:bg-gray-100"
-              >
-                <FiX />
-              </button>
-            </div>
-
-            <div
-              className="mx-auto space-y-5"
-              style={{
-                maxWidth: settings.formWidth,
-                backgroundColor: settings.backgroundColor,
-              }}
-            >
-              {/* Preview Banner */}
-              {bannerPreview && (
-                <img
-                  src={bannerPreview}
-                  alt="Form banner"
-                  className="h-48 w-full rounded-xl object-cover"
-                />
-              )}
-
-              <div>
-                <h1 className="text-2xl font-bold">{title}</h1>
-
-                <p className="mt-2 text-sm text-gray-500">
-                  {description}
-                </p>
-              </div>
-
-              <div
-                className="grid grid-cols-12 gap-4"
-                style={{
-                  gridTemplateColumns: `repeat(${settings.columns}, minmax(0, 1fr))`,
-                }}
-              >
-                {fields.map((field) => (
-                  <div
-                    key={field.fieldId}
-                    style={{
-                      gridColumn: `span ${Math.min(
-                        field.size.width,
-                        settings.columns
-                      )}`,
-                    }}
-                  >
-                    {renderField(field)}
-                  </div>
-                ))}
-              </div>
-
-              <button
-                style={{
-                  backgroundColor: settings.submitButtonColor,
-                }}
-                className="rounded-lg px-7 py-3 font-semibold text-white"
-              >
-                {settings.submitButtonText}
-              </button>
-            </div>
-          </div>
+          </main>
         </div>
-      )}
+      </div>
     </div>
   );
-}
+};
+
+export default Page;
