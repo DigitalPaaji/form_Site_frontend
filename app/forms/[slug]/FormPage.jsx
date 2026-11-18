@@ -13,7 +13,6 @@ import {
   FiCheckCircle,
   FiFileText,
   FiArrowRight,
-  FiUploadCloud,
   FiCalendar,
   FiClock,
   FiHash,
@@ -44,7 +43,10 @@ const FormPage = () => {
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
-  // Resolve uploaded image paths
+  // Unique key for each field
+  const getFieldKey = (field) => field._id || field.label;
+
+  // Image URL
   const getImageUrl = (image) => {
     if (!image) return "";
 
@@ -55,13 +57,29 @@ const FormPage = () => {
     return `${img_url}${image.startsWith("/") ? "" : "/"}${image}`;
   };
 
+  // Initial value according to field type
+  const getInitialValue = (field) => {
+    if (field.type === "checkbox") {
+      return field.options?.length ? [] : false;
+    }
+
+    if (field.type === "color") {
+      return "#37345f";
+    }
+
+    return "";
+  };
+
   // Fetch form
   const fetchData = async () => {
-    setLoading(true);
-    setFormNotFound(false);
-
     try {
-      const response = await axios.get(`${base_url}/user/get/${slug}`);
+      setLoading(true);
+      setFormNotFound(false);
+
+      const response = await axios.get(
+        `${base_url}/user/get/${slug}`
+      );
+
       const data = response.data;
 
       if (data.success && data.formData) {
@@ -70,9 +88,9 @@ const FormPage = () => {
         const initialValues = {};
 
         data.formData.fields?.forEach((field) => {
-          initialValues[field.label] =
-            field.defaultValue ??
-            (field.type === "checkbox" ? [] : "");
+          const key = getFieldKey(field);
+          initialValues[key] =
+            field.defaultValue ?? getInitialValue(field);
         });
 
         setValues(initialValues);
@@ -80,6 +98,7 @@ const FormPage = () => {
         setFormNotFound(true);
       }
     } catch (error) {
+      console.error("Fetch form error:", error);
       setFormNotFound(true);
     } finally {
       setLoading(false);
@@ -90,16 +109,16 @@ const FormPage = () => {
     if (slug) fetchData();
   }, [slug]);
 
-  const settings = formData?.settings || {};
-
+  // Sort fields
   const fields = useMemo(() => {
-    return [...(formData?.fields || [])].sort(
-      (a, b) => (a.order || 0) - (b.order || 0)
-    );
+    return [...(formData?.fields || [])];
   }, [formData]);
 
+  // Visible fields
   const activeFields = fields.filter(
-    (field) => !field.disabled && !["hidden", "divider", "heading", "paragraph"].includes(field.type)
+    (field) =>
+      !field.disabled &&
+      !["divider", "paragraph"].includes(field.type)
   );
 
   // Progress
@@ -107,48 +126,63 @@ const FormPage = () => {
     if (!activeFields.length) return 100;
 
     const completed = activeFields.filter((field) => {
-      const value = values[field.label];
+      const value = values[getFieldKey(field)];
+
+      if (Array.isArray(value)) return value.length > 0;
 
       return (
         value !== "" &&
         value !== undefined &&
         value !== null &&
-        (!Array.isArray(value) || value.length > 0)
+        value !== false
       );
     }).length;
 
     return Math.round((completed / activeFields.length) * 100);
   }, [activeFields, values]);
 
-  // Handle input changes
+  // Change value
   const handleChange = (field, value) => {
+    const key = getFieldKey(field);
+
     setValues((prev) => ({
       ...prev,
-      [field.label]: value,
+      [key]: value,
     }));
 
     setTouched((prev) => ({
       ...prev,
-      [field.label]: true,
+      [key]: true,
     }));
 
     setErrors((prev) => ({
       ...prev,
-      [field.label]: "",
+      [key]: "",
     }));
+  };
+
+  // Checkbox options
+  const handleCheckboxOption = (field, option, checked) => {
+    const key = getFieldKey(field);
+    const current = values[key] || [];
+
+    const updated = checked
+      ? [...current, option]
+      : current.filter((item) => item !== option);
+
+    handleChange(field, updated);
   };
 
   // Validation
   const validateField = (field, value) => {
-    const validation = field.validation || {};
+    if (field.disabled) return "";
 
     const empty =
       value === undefined ||
       value === null ||
       value === "" ||
+      value === false ||
       (Array.isArray(value) && value.length === 0);
-
-    if (field.disabled) return "";
 
     if (field.required && empty) {
       return `${field.label} is required`;
@@ -156,63 +190,54 @@ const FormPage = () => {
 
     if (empty) return "";
 
-    if (
-      validation.minLength != null &&
-      String(value).length < validation.minLength
-    ) {
-      return `Minimum ${validation.minLength} characters required`;
+    if (field.type === "email") {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      if (!emailRegex.test(value)) {
+        return "Please enter a valid email address";
+      }
     }
 
-    if (
-      validation.maxLength != null &&
-      String(value).length > validation.maxLength
-    ) {
-      return `Maximum ${validation.maxLength} characters allowed`;
+    if (field.type === "url") {
+      try {
+        const url = new URL(value);
+
+        if (!["http:", "https:"].includes(url.protocol)) {
+          return "Please enter a valid URL";
+        }
+      } catch {
+        return "Please enter a valid URL";
+      }
     }
 
-    if (
-      field.type === "email" &&
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-    ) {
-      return "Please enter a valid email address";
-    }
-
-    if (
-      ["number", "range"].includes(field.type) &&
-      validation.min != null &&
-      Number(value) < validation.min
-    ) {
-      return `Minimum value is ${validation.min}`;
-    }
-
-    if (
-      ["number", "range"].includes(field.type) &&
-      validation.max != null &&
-      Number(value) > validation.max
-    ) {
-      return `Maximum value is ${validation.max}`;
-    }
-
-    if (
-      field.type === "url" &&
-      !/^https?:\/\/.+\..+/.test(value)
-    ) {
-      return "Please enter a valid URL";
+    if (field.type === "number") {
+      if (Number.isNaN(Number(value))) {
+        return "Please enter a valid number";
+      }
     }
 
     return "";
   };
 
+  // Validate all fields
   const validateForm = () => {
     const newErrors = {};
     const allTouched = {};
 
     fields.forEach((field) => {
-      allTouched[field.label] = true;
+      const key = getFieldKey(field);
 
-      const error = validateField(field, values[field.label]);
+      if (field.disabled || ["divider", "paragraph"].includes(field.type)) {
+        return;
+      }
 
-      if (error) newErrors[field.label] = error;
+      allTouched[key] = true;
+
+      const error = validateField(field, values[key]);
+
+      if (error) {
+        newErrors[key] = error;
+      }
     });
 
     setErrors(newErrors);
@@ -236,13 +261,22 @@ const FormPage = () => {
       return;
     }
 
-    setSubmitting(true);
-    setSubmitError("");
-
     try {
+      setSubmitting(true);
+      setSubmitError("");
+
+      // Keep backend submission keys as field labels
+      const submissionData = {};
+
+      fields.forEach((field) => {
+        if (["divider", "paragraph"].includes(field.type)) return;
+
+        submissionData[field.label] = values[getFieldKey(field)];
+      });
+
       const response = await axios.post(`${base_url}/user/submit`, {
         formId: formData._id,
-        submissionData: values,
+        submissionData,
       });
 
       if (response.data.success) {
@@ -253,6 +287,8 @@ const FormPage = () => {
         );
       }
     } catch (error) {
+      console.error("Submit error:", error);
+
       setSubmitError(
         error.response?.data?.message ||
           "Something went wrong. Please try again."
@@ -268,139 +304,181 @@ const FormPage = () => {
       text: FiUser,
       email: FiMail,
       phone: FiPhone,
-      tel: FiPhone,
       textarea: FiMessageSquare,
       number: FiHash,
       date: FiCalendar,
       time: FiClock,
+      datetime: FiCalendar,
+      month: FiCalendar,
+      week: FiCalendar,
+      select: FiChevronDown,
+      radio: FiCheckCircle,
+      checkbox: FiCheck,
+      password: FiLock,
+      url: FiGlobe,
+      color: FiFileText,
     };
 
     return icons[type] || FiFileText;
   };
 
-  // Input renderer
-  const renderField = (field) => {
-    const style = field.style || {};
-    const validation = field.validation || {};
-    const size = field.size || {};
+  // Common input styles
+  const getInputClass = (field) => {
+    const key = getFieldKey(field);
+    const error = touched[key] && errors[key];
 
-    const error = touched[field.label] && errors[field.label];
-
-    const inputClass = `lux-input w-full px-4 py-3.5 text-sm outline-none transition-all duration-200 ${
+    return `lux-input w-full px-4 py-3.5 text-sm outline-none transition-all duration-200 ${
       error ? "lux-input-error" : ""
     }`;
+  };
 
-    const commonProps = {
-      name: field.label,
-      id: field.label,
-      value: values[field.label] ?? "",
+  // Common input props
+  const getCommonProps = (field) => {
+    const key = getFieldKey(field);
+
+    return {
+      name: key,
+      id: key,
+      value: values[key] ?? "",
       placeholder: field.placeholder || "Enter here...",
       required: field.required || false,
       disabled: field.disabled || false,
       readOnly: field.readOnly || false,
       onChange: (e) => handleChange(field, e.target.value),
-      className: inputClass,
-      style: {
-        backgroundColor: style.backgroundColor || "#ffffff",
-        color: style.textColor || "#252525",
-        borderColor: error
-          ? "#dc6262"
-          : style.borderColor || "#e5e7eb",
-        borderRadius: `${style.borderRadius ?? 10}px`,
-        fontSize: `${style.fontSize || 14}px`,
-        fontWeight: style.fontWeight || "normal",
-        textAlign: style.alignment || "left",
-        minHeight:
-          field.type === "textarea"
-            ? `${size.height || 110}px`
-            : `${size.height || 48}px`,
-      },
+      className: getInputClass(field),
     };
+  };
+
+  // Render fields
+  const renderField = (field) => {
+    const key = getFieldKey(field);
+    const value = values[key];
+    const options = Array.isArray(field.options) ? field.options : [];
+
+    const commonProps = getCommonProps(field);
 
     switch (field.type) {
-      case "heading":
+      // Text
+      case "text":
+      case "email":
+      case "phone":
+      case "password":
+      case "url":
         return (
-          <h3 className="text-lg font-semibold text-[#252525]">
-            {field.label}
-          </h3>
+          <input
+            {...commonProps}
+            type={field.type === "phone" ? "tel" : field.type}
+          />
         );
 
-      case "paragraph":
+      // Number
+      case "number":
         return (
-          <p className="text-sm leading-7 text-gray-500">
-            {field.helpText || field.defaultValue || field.label}
-          </p>
+          <input
+            {...commonProps}
+            type="number"
+          />
         );
 
-      case "divider":
-        return <div className="h-px w-full bg-gray-200 my-2" />;
-
-      case "hidden":
-        return null;
-
+      // Textarea
       case "textarea":
         return (
           <textarea
             {...commonProps}
-            rows={size.rows || 4}
-            style={{ ...commonProps.style, resize: "vertical" }}
+            rows={4}
+            className={`${getInputClass(field)} resize-y`}
           />
         );
 
+      // Date
+      case "date":
+      case "time":
+      case "datetime":
+      case "month":
+      case "week":
+        return (
+          <input
+            {...commonProps}
+            type={
+              field.type === "datetime"
+                ? "datetime-local"
+                : field.type
+            }
+          />
+        );
+
+      // Color
+      case "color":
+        return (
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              value={value || "#37345f"}
+              disabled={field.disabled}
+              onChange={(e) => handleChange(field, e.target.value)}
+              className="h-12 w-16 cursor-pointer rounded-lg border border-gray-200 p-1"
+            />
+
+            <span className="text-sm text-gray-500">
+              {value || "#37345f"}
+            </span>
+          </div>
+        );
+
+      // Select
       case "select":
         return (
           <div className="relative">
             <select
               {...commonProps}
-              className={`${inputClass} appearance-none pr-10 cursor-pointer`}
+              value={value || ""}
+              onChange={(e) => handleChange(field, e.target.value)}
+              className={`${getInputClass(field)} appearance-none pr-10 cursor-pointer`}
             >
               <option value="">
                 {field.placeholder || "Select an option"}
               </option>
 
-              {field.options?.map((option, index) => (
-                <option
-                  key={option._id || index}
-                  value={option.label ?? option.label}
-                >
-                  {option.label}
+              {options.map((option, index) => (
+                <option key={index} value={option}>
+                  {option}
                 </option>
               ))}
             </select>
 
-            <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <FiChevronDown className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" />
           </div>
         );
 
+      // Radio - Only one option can be selected
       case "radio":
         return (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {field.options?.map((option, index) => {
-              const optionValue = option.value ?? option.label;
-              const active = values[field.label] === optionValue;
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {options.map((option, index) => {
+              const checked = value === option;
 
               return (
                 <label
-                  key={option._id || index}
+                  key={index}
                   className={`lux-choice ${
-                    active ? "lux-choice-active" : ""
-                  }`}
+                    checked ? "lux-choice-active" : ""
+                  } ${field.disabled ? "opacity-60 cursor-not-allowed" : ""}`}
                 >
                   <input
                     type="radio"
-                    name={field.label}
-                    value={optionValue}
-                    checked={active}
+                    name={key}
+                    value={option}
+                    checked={checked}
                     disabled={field.disabled}
-                    onChange={() => handleChange(field, optionValue)}
-                    className="accent-[#37345f] w-4 h-4"
+                    onChange={() => handleChange(field, option)}
+                    className="h-4 w-4 accent-[#37345f]"
                   />
 
                   <span className="text-sm text-gray-700">
-                    {option.label}
+                    {option}
                   </span>
 
-                  {active && (
+                  {checked && (
                     <FiCheck className="ml-auto text-[#37345f]" />
                   )}
                 </label>
@@ -409,210 +487,103 @@ const FormPage = () => {
           </div>
         );
 
+      // Checkbox - Multiple options or single boolean
       case "checkbox":
-        if (!field.options?.length) {
-          return (
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={Boolean(values[field.label])}
-                disabled={field.disabled}
-                onChange={(e) =>
-                  handleChange(field, e.target.checked)
-                }
-                className="w-4 h-4 accent-[#37345f]"
-              />
+        // Checkbox with options
+        if (options.length > 0) {
+          const selected = Array.isArray(value) ? value : [];
 
-              <span className="text-sm text-gray-700">
-                {field.placeholder || field.label}
-              </span>
-            </label>
+          return (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {options.map((option, index) => {
+                const checked = selected.includes(option);
+
+                return (
+                  <label
+                    key={index}
+                    className={`lux-choice ${
+                      checked ? "lux-choice-active" : ""
+                    } ${field.disabled ? "opacity-60 cursor-not-allowed" : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      value={option}
+                      checked={checked}
+                      disabled={field.disabled}
+                      onChange={(e) =>
+                        handleCheckboxOption(
+                          field,
+                          option,
+                          e.target.checked
+                        )
+                      }
+                      className="h-4 w-4 accent-[#37345f]"
+                    />
+
+                    <span className="text-sm text-gray-700">
+                      {option}
+                    </span>
+
+                    {checked && (
+                      <FiCheck className="ml-auto text-[#37345f]" />
+                    )}
+                  </label>
+                );
+              })}
+            </div>
           );
         }
 
+        // Single checkbox
         return (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {field.options.map((option, index) => {
-              const optionValue = option.value ?? option.label;
-              const current = values[field.label] || [];
-              const checked = current.includes(optionValue);
-
-              return (
-                <label
-                  key={option._id || index}
-                  className={`lux-choice ${
-                    checked ? "lux-choice-active" : ""
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    disabled={field.disabled}
-                    onChange={(e) => {
-                      handleChange(
-                        field,
-                        e.target.checked
-                          ? [...current, optionValue]
-                          : current.filter((v) => v !== optionValue)
-                      );
-                    }}
-                    className="w-4 h-4 accent-[#37345f]"
-                  />
-
-                  <span className="text-sm text-gray-700">
-                    {option.label}
-                  </span>
-                </label>
-              );
-            })}
-          </div>
-        );
-
-      case "toggle":
-        return (
-          <label className="flex items-center gap-3 cursor-pointer">
+          <label className="flex cursor-pointer items-center gap-3">
             <input
               type="checkbox"
-              checked={Boolean(values[field.label])}
+              checked={Boolean(value)}
               disabled={field.disabled}
               onChange={(e) =>
                 handleChange(field, e.target.checked)
               }
-              className="sr-only peer"
+              className="h-4 w-4 accent-[#37345f]"
             />
 
-            <span className="relative w-11 h-6 bg-gray-200 rounded-full peer-checked:bg-[#37345f] transition-colors">
-              <span className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5" />
-            </span>
-
-            <span className="text-sm text-gray-600">
-              {field.placeholder || "Enable"}
+            <span className="text-sm text-gray-700">
+              {field.placeholder || field.label}
             </span>
           </label>
         );
 
-      case "file":
+      // Paragraph
+      case "paragraph":
         return (
-          <label className="block border border-dashed border-gray-300 rounded-xl p-6 text-center bg-gray-50 hover:bg-gray-100 hover:border-gray-400 transition cursor-pointer">
-            <FiUploadCloud size={25} className="mx-auto text-gray-500 mb-3" />
-
-            <p className="text-sm font-semibold text-gray-700">
-              Click to upload your file
-            </p>
-
-            <p className="text-xs text-gray-400 mt-1">
-              {validation.accept || "Choose your file"}
-            </p>
-
-            <input
-              type="file"
-              hidden
-              disabled={field.disabled}
-              multiple={validation.multiple || false}
-              accept={validation.accept || undefined}
-              onChange={(e) =>
-                handleChange(
-                  field,
-                  validation.multiple
-                    ? Array.from(e.target.files || [])
-                    : e.target.files?.[0] || null
-                )
-              }
-            />
-
-            {values[field.label] && (
-              <p className="text-xs text-[#37345f] mt-3 font-medium">
-                {Array.isArray(values[field.label])
-                  ? `${values[field.label].length} files selected`
-                  : values[field.label].name}
-              </p>
-            )}
-          </label>
+          <p className="whitespace-pre-line text-sm leading-7 text-gray-500">
+            {field.helpText || field.label}
+          </p>
         );
 
-      case "number":
-        return (
-          <input
-            {...commonProps}
-            type="number"
-            min={validation.min ?? undefined}
-            max={validation.max ?? undefined}
-            step="any"
-          />
-        );
-
-      case "range":
-        return (
-          <div className="py-2">
-            <input
-              type="range"
-              min={validation.min ?? 0}
-              max={validation.max ?? 100}
-              value={values[field.label] ?? validation.min ?? 0}
-              disabled={field.disabled}
-              onChange={(e) => handleChange(field, e.target.value)}
-              className="w-full accent-[#37345f]"
-            />
-
-            <div className="flex justify-between text-xs text-gray-400 mt-2">
-              <span>{validation.min ?? 0}</span>
-              <span className="font-semibold text-gray-700">
-                {values[field.label] ?? validation.min ?? 0}
-              </span>
-              <span>{validation.max ?? 100}</span>
-            </div>
-          </div>
-        );
-
-      case "color":
-        return (
-          <input
-            type="color"
-            value={values[field.label] || "#37345f"}
-            disabled={field.disabled}
-            onChange={(e) => handleChange(field, e.target.value)}
-            className="w-full h-12 border border-gray-200 rounded-xl p-1 cursor-pointer"
-          />
-        );
-
-      case "datetime":
-        return <input {...commonProps} type="datetime-local" />;
-
-      case "month":
-        return <input {...commonProps} type="month" />;
-
-      case "week":
-        return <input {...commonProps} type="week" />;
-
-      case "email":
-      case "phone":
-      case "tel":
-      case "text":
-      case "password":
-      case "date":
-      case "time":
-      case "url":
-        return (
-          <input
-            {...commonProps}
-            type={field.type === "phone" ? "tel" : field.type}
-            minLength={validation.minLength ?? undefined}
-            maxLength={validation.maxLength ?? undefined}
-          />
-        );
+      // Divider
+      case "divider":
+        return <div className="my-2 h-px w-full bg-gray-200" />;
 
       default:
-        return <input {...commonProps} type="text" />;
+        return (
+          <input
+            {...commonProps}
+            type="text"
+          />
+        );
     }
   };
 
+  // Loading
   if (loading) return <Loder />;
 
+  // Not found
   if (formNotFound || !formData) {
     return (
-      <main className="min-h-screen bg-[#f7f7f8] flex items-center justify-center p-5">
-        <div className="bg-white border border-gray-200 rounded-2xl max-w-md w-full p-9 text-center shadow-sm">
-          <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-5">
+      <main className="flex min-h-screen items-center justify-center bg-[#f7f7f8] p-5">
+        <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-9 text-center shadow-sm">
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-500">
             <FiAlertCircle size={27} />
           </div>
 
@@ -620,13 +591,13 @@ const FormPage = () => {
             Form not found
           </h1>
 
-          <p className="text-sm text-gray-500 mt-3 leading-6">
+          <p className="mt-3 text-sm leading-6 text-gray-500">
             This form may have been removed, unpublished or the link is incorrect.
           </p>
 
           <button
             onClick={fetchData}
-            className="mt-6 inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#292744] text-white text-sm font-semibold hover:bg-[#403d68] transition"
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#292744] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#403d68]"
           >
             <FiRefreshCw />
             Try Again
@@ -636,28 +607,28 @@ const FormPage = () => {
     );
   }
 
+  // Success
   if (submitted) {
     return (
-      <main className="min-h-screen bg-[#f7f7f8] flex items-center justify-center p-5">
-        <div className="bg-white border border-gray-200 rounded-2xl max-w-lg w-full p-9 sm:p-12 text-center shadow-sm">
-          <div className="w-20 h-20 rounded-full bg-green-50 text-green-600 flex items-center justify-center mx-auto mb-6">
+      <main className="flex min-h-screen items-center justify-center bg-[#f7f7f8] p-5">
+        <div className="w-full max-w-lg rounded-2xl border border-gray-200 bg-white p-9 text-center shadow-sm sm:p-12">
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-50 text-green-600">
             <FiCheckCircle size={38} />
           </div>
 
-          <p className="text-xs uppercase tracking-[.2em] font-bold text-green-600">
+          <p className="text-xs font-bold uppercase tracking-[.2em] text-green-600">
             Successfully Submitted
           </p>
 
-          <h1 className="text-3xl font-bold text-gray-900 mt-4">
+          <h1 className="mt-4 text-3xl font-bold text-gray-900">
             Thank You!
           </h1>
 
-          <p className="text-gray-500 mt-4 leading-7">
-            {settings.successMessage ||
-              "Your response has been submitted successfully."}
+          <p className="mt-4 leading-7 text-gray-500">
+            Your response has been submitted successfully.
           </p>
 
-          <div className="mt-8 rounded-xl bg-green-50 border border-green-100 p-4 flex items-center justify-center gap-2 text-green-700 text-sm font-medium">
+          <div className="mt-8 flex items-center justify-center gap-2 rounded-xl border border-green-100 bg-green-50 p-4 text-sm font-medium text-green-700">
             <FiCheckCircle />
             Your response has been received
           </div>
@@ -666,35 +637,16 @@ const FormPage = () => {
     );
   }
 
-  const columns = Math.min(
-    12,
-    Math.max(1, Number(settings.columns) || 12)
-  );
-
-  const formWidth = Math.max(
-    320,
-    Math.min(1200, Number(settings.formWidth) || 760)
-  );
-
-  const alignmentClass = {
-    left: "mr-auto",
-    center: "mx-auto",
-    right: "ml-auto",
-  }[settings.formAlignment] || "mx-auto";
-
   const bannerUrl = getImageUrl(formData.bannerImage);
 
   return (
-    <main
-      className="min-h-screen  bg-[#f7f7f8] px-4 py-8 sm:px-6 sm:py-12"
-      style={{
-        backgroundColor: settings.backgroundColor || "#f7f7f8",
-      }}
-    >
+    <main className="min-h-screen bg-[#f7f7f8] px-4 py-8 sm:px-6 sm:py-12">
+
       <style>{`
         .lux-input {
           border: 1px solid #e5e7eb;
           background: #fff;
+          color: #252525;
           border-radius: 10px;
           min-height: 48px;
         }
@@ -710,13 +662,13 @@ const FormPage = () => {
         }
 
         .lux-input:disabled {
-          background: #f5f5f5 !important;
+          background: #f5f5f5;
           cursor: not-allowed;
         }
 
         .lux-input-error {
           border-color: #dc6262 !important;
-          background: #fffafa !important;
+          background: #fffafa;
         }
 
         .lux-choice {
@@ -741,14 +693,6 @@ const FormPage = () => {
           background: #f7f6fb;
         }
 
-        .lux-submit {
-          transition: transform .2s ease, opacity .2s ease;
-        }
-
-        .lux-submit:hover:not(:disabled) {
-          transform: translateY(-1px);
-        }
-
         .lux-field-grid {
           display: grid;
           grid-template-columns: repeat(12, minmax(0, 1fr));
@@ -771,73 +715,75 @@ const FormPage = () => {
         }
       `}</style>
 
-      <div className={`w-full ${alignmentClass} `} style={{ maxWidth: `${formWidth}px` }}>
-        {/* Brand header */}
-        <div className="flex items-center justify-between mb-6 px-1">
+      <div className="mx-auto w-full max-w-[760px]">
+
+        {/* Header */}
+        <div className="mb-6 flex items-center justify-between px-1">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#292744] text-white flex items-center justify-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#292744] text-white">
               <FiFileText size={20} />
             </div>
 
             <div>
-              <p className="text-sm font-bold tracking-tight text-[#292744]">
+              <p className="text-sm font-bold text-[#292744]">
                 Contact
               </p>
-              <p className="text-[10px] text-gray-400 uppercase tracking-[.16em] mt-0.5">
+
+              <p className="mt-0.5 text-[10px] uppercase tracking-[.16em] text-gray-400">
                 Online Form
               </p>
             </div>
           </div>
 
-          <div className="hidden sm:flex items-center gap-2 text-xs text-gray-500 bg-white border border-gray-200 rounded-full px-3 py-2">
-            <span className="w-2 h-2 rounded-full bg-green-500" />
+          <div className="hidden items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-xs text-gray-500 sm:flex">
+            <span className="h-2 w-2 rounded-full bg-green-500" />
             Live Form
           </div>
         </div>
 
-        {/* Main form card */}
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-[0_12px_45px_rgba(0,0,0,0.045)] overflow-hidden">
+        {/* Form Card */}
+        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_12px_45px_rgba(0,0,0,0.045)]">
 
-          {/* Full width banner */}
+          {/* Banner */}
           {bannerUrl && (
-            <div className="w-full relative overflow-hidden bg-gray-100">
+            <div className="relative w-full overflow-hidden bg-gray-100">
               <img
                 src={bannerUrl}
-                alt={formData.title || "Form banner"}
-                className="w-full h-[190px] sm:h-[250px] md:h-[300px] object-cover object-center"
+                alt={formData.title}
+                className="h-[190px] w-full object-cover object-center sm:h-[250px] md:h-[300px]"
               />
             </div>
           )}
 
-          {/* Content */}
           <div className="p-5 sm:p-8 md:p-10">
 
-            {/* Form heading */}
+            {/* Form Title */}
             <div className="mb-8">
-              <div className="inline-flex items-center gap-2 text-[11px] font-semibold text-[#55516f] bg-[#f4f3f8] rounded-md px-3 py-1.5 mb-4">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-md bg-[#f4f3f8] px-3 py-1.5 text-[11px] font-semibold text-[#55516f]">
                 <FiFileText size={13} />
                 FORM DETAILS
               </div>
 
-              <h1 className="text-2xl sm:text-3xl font-bold text-[#252525] tracking-tight leading-tight">
+              <h1 className="text-2xl font-bold leading-tight tracking-tight text-[#252525] sm:text-3xl">
                 {formData.title}
               </h1>
 
               {formData.description && (
-                <p className="text-sm text-gray-500 mt-3 leading-7 whitespace-pre-line">
+                <p className="mt-3 whitespace-pre-line text-sm leading-7 text-gray-500">
                   {formData.description}
                 </p>
               )}
             </div>
 
             {/* Progress */}
-            <div className="mb-9 p-4 rounded-xl bg-[#fafafd] border border-gray-100">
-              <div className="flex items-center justify-between mb-3">
+            <div className="mb-9 rounded-xl border border-gray-100 bg-[#fafafd] p-4">
+              <div className="mb-3 flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold text-gray-700">
                     Form completion
                   </p>
-                  <p className="text-[11px] text-gray-400 mt-1">
+
+                  <p className="mt-1 text-[11px] text-gray-400">
                     Complete the required information
                   </p>
                 </div>
@@ -847,7 +793,7 @@ const FormPage = () => {
                 </span>
               </div>
 
-              <div className="h-1.5 rounded-full bg-gray-200 overflow-hidden">
+              <div className="h-1.5 overflow-hidden rounded-full bg-gray-200">
                 <div
                   className="h-full rounded-full bg-[#37345f] transition-all duration-500"
                   style={{ width: `${progress}%` }}
@@ -855,9 +801,9 @@ const FormPage = () => {
               </div>
             </div>
 
-            {/* Form heading */}
-            <div className="flex items-center gap-3 mb-7">
-              <div className="w-9 h-9 rounded-lg bg-[#f4f3f8] text-[#55516f] flex items-center justify-center">
+            {/* Section Heading */}
+            <div className="mb-7 flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f4f3f8] text-[#55516f]">
                 <FiFileText size={17} />
               </div>
 
@@ -865,7 +811,8 @@ const FormPage = () => {
                 <h2 className="text-sm font-bold text-gray-800">
                   Your Information
                 </h2>
-                <p className="text-xs text-gray-400 mt-0.5">
+
+                <p className="mt-0.5 text-xs text-gray-400">
                   Please provide the details below
                 </p>
               </div>
@@ -874,49 +821,32 @@ const FormPage = () => {
             {/* Form */}
             <form onSubmit={handleSubmit} noValidate>
               <div className="lux-field-grid">
-                {fields.map((field) => {
-                  if (field.type === "hidden") {
-                    return (
-                      <input
-                        key={field.fieldId || field._id || field.label}
-                        type="hidden"
-                        value={values[field.label] ?? ""}
-                        readOnly
-                      />
-                    );
-                  }
 
-                  const width = Math.min(
-                    columns,
-                    Math.max(1, Number(field.size?.width) || 12)
-                  );
-
-                  const span = Math.max(
-                    1,
-                    Math.round((width / columns) * 12)
-                  );
-
+                {fields.map((field, index) => {
+                  const key = getFieldKey(field);
                   const Icon = getIcon(field.type);
-                  const error = touched[field.label] && errors[field.label];
+                  const error = touched[key] && errors[key];
 
                   const isContentField = [
-                    "heading",
                     "paragraph",
                     "divider",
                   ].includes(field.type);
 
+                  const span = 12;
+
                   return (
                     <div
-                      key={field.fieldId || field._id || field.label}
+                      key={key || index}
                       className={`lux-field ${
                         error ? "lux-field-error" : ""
                       }`}
                       style={{ "--field-span": span }}
                     >
+                      {/* Label */}
                       {!isContentField && (
-                        <div className="flex items-center justify-between gap-2 mb-2.5">
+                        <div className="mb-2.5 flex items-center justify-between gap-2">
                           <label
-                            htmlFor={field.label}
+                            htmlFor={key}
                             className="flex items-center gap-2 text-[13px] font-semibold text-gray-700"
                           >
                             <Icon size={14} className="text-gray-400" />
@@ -936,16 +866,19 @@ const FormPage = () => {
                         </div>
                       )}
 
+                      {/* Field */}
                       {renderField(field)}
 
+                      {/* Help text */}
                       {field.helpText && field.type !== "paragraph" && (
-                        <p className="text-[11px] text-gray-400 mt-2 leading-relaxed">
+                        <p className="mt-2 text-[11px] leading-relaxed text-gray-400">
                           {field.helpText}
                         </p>
                       )}
 
+                      {/* Error */}
                       {error && (
-                        <p className="flex items-center gap-1.5 mt-2 text-xs font-medium text-red-500">
+                        <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-red-500">
                           <FiAlertCircle size={13} />
                           {error}
                         </p>
@@ -953,12 +886,13 @@ const FormPage = () => {
                     </div>
                   );
                 })}
+
               </div>
 
-              {/* Submission error */}
+              {/* Submission Error */}
               {submitError && (
-                <div className="mt-7 p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 flex items-start gap-3">
-                  <FiAlertCircle className="shrink-0 mt-0.5" />
+                <div className="mt-7 flex items-start gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-red-600">
+                  <FiAlertCircle className="mt-0.5 shrink-0" />
 
                   <p className="text-xs leading-relaxed">
                     {submitError}
@@ -975,10 +909,11 @@ const FormPage = () => {
               )}
 
               {/* Footer */}
-              <div className="mt-9 pt-6 border-t border-gray-100">
-                <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-5">
+              <div className="mt-9 border-t border-gray-100 pt-6">
+                <div className="flex flex-col-reverse gap-5 sm:flex-row sm:items-center sm:justify-between">
+
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-500">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-100 bg-gray-50 text-gray-500">
                       <FiShield size={17} />
                     </div>
 
@@ -986,7 +921,8 @@ const FormPage = () => {
                       <p className="text-xs font-semibold text-gray-700">
                         Your information is secure
                       </p>
-                      <p className="text-[10px] text-gray-400 mt-1">
+
+                      <p className="mt-1 text-[10px] text-gray-400">
                         Your details are submitted confidentially
                       </p>
                     </div>
@@ -995,10 +931,7 @@ const FormPage = () => {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="lux-submit w-full sm:w-auto min-w-[180px] inline-flex items-center justify-center gap-3 px-7 py-3.5 rounded-xl text-white text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
-                    style={{
-                      backgroundColor: settings.submitButtonColor || "#37345f",
-                    }}
+                    className="inline-flex w-full min-w-[180px] items-center justify-center gap-3 rounded-xl bg-[#37345f] px-7 py-3.5 text-sm font-semibold text-white transition hover:bg-[#292744] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                   >
                     {submitting ? (
                       <>
@@ -1007,7 +940,7 @@ const FormPage = () => {
                       </>
                     ) : (
                       <>
-                        {settings.submitButtonText || "Submit"}
+                        Submit
                         <FiArrowRight size={17} />
                       </>
                     )}
@@ -1018,13 +951,19 @@ const FormPage = () => {
           </div>
         </div>
 
-        {/* Bottom footer */}
-        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 px-1">
+        {/* Bottom Footer */}
+        <div className="mt-6 flex flex-col items-center justify-between gap-3 px-1 sm:flex-row">
           <div className="flex items-center gap-2 text-gray-400">
             <FiGlobe size={13} />
+
             <span className="text-[11px]">
               Powered by{" "}
-              <a href="https://digitalpaaji.com/" target="_blank"  className="font-bold text-[#55516f]">
+              <a
+                href="https://digitalpaaji.com/"
+                target="_blank"
+                rel="noreferrer"
+                className="font-bold text-[#55516f]"
+              >
                 Digital Paaji
               </a>
             </span>
@@ -1032,6 +971,7 @@ const FormPage = () => {
 
           <div className="flex items-center gap-2 text-gray-400">
             <FiLock size={12} />
+
             <span className="text-[10px]">
               Secure Form Experience
             </span>

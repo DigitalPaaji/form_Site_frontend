@@ -120,7 +120,7 @@ const menuItems = [
             Workspace
           </p>
 
-          <nav className="space-y-2">
+          <nav className="space-y-1">
 
 
 
@@ -152,14 +152,11 @@ const menuItems = [
 
 <IoIosArrowDown className={` duration-200 ${showInside=="formsection"? "":"-rotate-90"} `} />
 </div>
-{
-
-
-showInside=="formsection" && <div className="w-full ps-10 ">
+<div className={`w-full ps-10  ${showInside=="formsection" ? "h-20":"h-0" } overflow-hidden  duration-300 `}>
 
 <Link
   href="/formpage/create"
-  className={` block  px-4 py-2.5 my-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+  className={` block  px-4 py-2.5  rounded-lg text-sm font-semibold transition-all duration-200 ${
     pathname === "/formpage/create"
       ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
       : "text-gray-600 hover:bg-blue-50 hover:text-blue-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-blue-400"
@@ -168,7 +165,18 @@ showInside=="formsection" && <div className="w-full ps-10 ">
   Create Page
 </Link>
 
-{user?.formPage.map((item,index)=><Link
+
+<Link
+  href="/formpage/listall"
+  className={` block  px-4 py-2.5  rounded-lg text-sm font-semibold transition-all duration-200 ${
+    pathname === "/formpage/listall"
+      ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
+      : "text-gray-600 hover:bg-blue-50 hover:text-blue-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-blue-400"
+  }`}
+>
+  Form List
+</Link>
+{/* {user?.formPage.map((item,index)=><Link
   href={`/formpage/${item._id}`}
   key={item._id}
   className={`  flex gap-2  px-4 py-2.5 my-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
@@ -179,7 +187,7 @@ showInside=="formsection" && <div className="w-full ps-10 ">
 >
   <span>({index+1})</span>
 {item.title}
-</Link>)}
+</Link>)} */}
 
 
 
@@ -191,7 +199,7 @@ showInside=="formsection" && <div className="w-full ps-10 ">
 
 </div>
 
-}
+
 
 
 
@@ -377,8 +385,17 @@ showInside=="formsection" && <div className="w-full ps-10 ">
 >
   Create Page
 </Link>
-
-{user?.formPage.map((item,index)=><Link
+<Link
+  href="/formpage/listall"
+  className={` block  px-4 py-2.5 my-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+    pathname === "/formpage/listall"
+      ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
+      : "text-gray-600 hover:bg-blue-50 hover:text-blue-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-blue-400"
+  }`}
+>
+  Form List
+</Link>
+{/* {user?.formPage.map((item,index)=><Link
   href={`/formpage/${item._id}`}
   key={item._id}
   className={`  flex gap-2  px-4 py-2.5 my-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
@@ -389,7 +406,7 @@ showInside=="formsection" && <div className="w-full ps-10 ">
 >
   <span>({index+1})</span>
 {item.title}
-</Link>)}
+</Link>)} */}
 
 
 
