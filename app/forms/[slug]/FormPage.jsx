@@ -219,7 +219,8 @@ const FormPage = () => {
     return "";
   };
 
-  // Validate all fields
+
+  
   const validateForm = () => {
     const newErrors = {};
     const allTouched = {};
@@ -246,7 +247,9 @@ const FormPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Submit
+
+
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 

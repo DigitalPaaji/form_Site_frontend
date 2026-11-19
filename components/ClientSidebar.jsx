@@ -19,6 +19,7 @@ import { base_url } from "./utils";
 import { IoIosArrowDown } from "react-icons/io";
 import { useSelector } from "react-redux";
 import { MdLeaderboard } from "react-icons/md";
+import { IoSettingsOutline } from "react-icons/io5";
 
 
 
@@ -176,18 +177,7 @@ const menuItems = [
 >
   Form List
 </Link>
-{/* {user?.formPage.map((item,index)=><Link
-  href={`/formpage/${item._id}`}
-  key={item._id}
-  className={`  flex gap-2  px-4 py-2.5 my-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
-    pathname === `/formpage/${item._id}`
-      ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
-      : "text-gray-600 hover:bg-blue-50 hover:text-blue-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-blue-400"
-  }`}
->
-  <span>({index+1})</span>
-{item.title}
-</Link>)} */}
+
 
 
 
@@ -199,16 +189,33 @@ const menuItems = [
 
 </div>
 
+<Link
+                
+                  href={"/setting"}
+                  onClick={() => setOpen(false)}
+                  className={`group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200
+                    ${
+                      pathname === "/setting"
+                        ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
+                        : "text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"
+                    }`}
+                >
+                  <IoSettingsOutline className="text-lg shrink-0" />
+                  <span>Setting</span>
+
+                  {pathname === "/setting" && (
+                    <span className="ml-auto h-1.5 w-1.5 rounded-full bg-white" />
+                  )}
+                </Link>
 
 
 
-
-<div onClick={()=>setShowInside(showInside=="leadsection"? " ":"leadsection")} className="group flex items-center justify-between rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white">
+{/* <div onClick={()=>setShowInside(showInside=="leadsection"? " ":"leadsection")} className="group flex items-center justify-between rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white">
 <div className="flex items-center  gap-3"> <MdLeaderboard   className="text-lg shrink-0" /><span>Leads</span></div>
 
 <IoIosArrowDown className={` duration-200 ${showInside=="leadsection"? "":"-rotate-90"} `} />
-</div>
-{
+</div> */}
+{/* {
 
 
 showInside=="leadsection" && <div className="w-full ps-10 ">
@@ -238,7 +245,7 @@ showInside=="leadsection" && <div className="w-full ps-10 ">
 
 </div>
 
-}
+} */}
 
 
 
