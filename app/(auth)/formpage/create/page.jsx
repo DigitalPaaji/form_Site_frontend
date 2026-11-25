@@ -101,6 +101,7 @@ const Page = () => {
 
   const [title, setTitle] = useState("Form Title");
   const [description, setDescription] = useState("");
+  const [leadEmail, setleadEmail] = useState("");
 
   const [fields, setFields] = useState([]);
 
@@ -485,6 +486,7 @@ const Page = () => {
       formData.append("fields", JSON.stringify(preparedFields));
   
       formData.append("status", status);
+      formData.append("leadEmail", leadEmail);
 
       if (banner) {
         formData.append("banner", banner);
@@ -633,6 +635,15 @@ const Page = () => {
                   placeholder="Form title"
                   className="w-full border-0 bg-transparent text-2xl font-bold text-gray-800 outline-none"
                 />
+
+
+               <input
+                  value={leadEmail}
+                  onChange={(e) => setleadEmail(e.target.value)}
+                  placeholder="Lead send Email"
+                  className="w-full border-0 mt-3 bg-transparent text-xl font-bold text-green-800 outline-none "   
+                               />
+
 
                 <textarea
                   value={description}

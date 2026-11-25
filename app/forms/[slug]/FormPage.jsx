@@ -578,7 +578,27 @@ const FormPage = () => {
     }
   };
 
-  // Loading
+useEffect(() => {
+  if (!submitted || !formData) return;
+
+  const timer = setTimeout(() => {
+    const initialValues = {};
+
+    formData.fields?.forEach((field) => {
+      const key = getFieldKey(field);
+      initialValues[key] =
+        field.defaultValue ?? getInitialValue(field);
+    });
+
+    setValues(initialValues);
+    setErrors({});
+    setTouched({});
+    setSubmitError("");
+    setSubmitted(false);
+  }, 3000);
+
+  return () => clearTimeout(timer);
+}, [submitted, formData]);
   if (loading) return <Loder />;
 
   // Not found

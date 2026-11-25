@@ -220,7 +220,7 @@ const Page = () => {
               </div>
             </div>
 
-            {!editMode ? (
+            {/* {!editMode ? (
               <button
                 onClick={() => setEditMode(true)}
                 className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
@@ -248,7 +248,7 @@ const Page = () => {
                   {saving ? "Saving..." : "Save Changes"}
                 </button>
               </div>
-            )}
+            )} */}
           </div>
 
           {/* EDITABLE FIELDS */}
@@ -278,37 +278,8 @@ const Page = () => {
               )}
             </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-gray-700">
-                Send Lead
-              </label>
-
-              {editMode ? (
-                <select
-                  name="sendLead"
-                  value={formData.sendLead}
-                  onChange={inputChange}
-                  className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                >
-                  <option value="">Select Send Lead</option>
-                  {["null","email","whatsapp","SMS"].map((item,index)=><option value={item}  key={index} >{item}</option>)}
-                  
-                </select>
-              ) : (
-                <div className="flex items-center gap-3 rounded-xl bg-gray-50 px-4 py-3">
-                  <FiCheckCircle className="text-gray-400" />
-                  <span className="font-medium text-gray-800">
-                    {admin.sendLead === "null" || !admin.sendLead
-                      ? "Not Set"
-                      : admin.sendLead === "true"
-                        ? "Yes"
-                        : admin.sendLead === "false"
-                          ? "No"
-                          : admin.sendLead}
-                  </span>
-                </div>
-              )}
-            </div>
+        
+      
 
           </div>
         </div>
