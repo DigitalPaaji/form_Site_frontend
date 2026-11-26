@@ -758,57 +758,64 @@ const FormPage = () => {
       <div className="mx-auto w-full max-w-[760px]">
 
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between px-1">
-          <div className="flex min-w-0 items-center gap-3">
+       <div className="mb-6 flex items-center justify-between px-1">
+  {/* Left: logo / icon */}
+  <div className="flex w-24 shrink-0 items-center sm:w-32">
+    {logoUrl ? (
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white p-1">
+        <img
+          src={logoUrl}
+          alt={`${formData.title || "Form"} logo`}
+          className="h-full w-full object-contain"
+        />
+      </div>
+    ) : (
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#292744] text-white">
+        <FiFileText size={20} />
+      </div>
+    )}
+  </div>
 
-            {/* Logo if available, otherwise default icon */}
-            {logoUrl ? (
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white p-1">
-                <img
-                  src={logoUrl}
-                  alt={`${formData.title || "Form"} logo`}
-                  className="h-full w-full object-contain"
-                />
-              </div>
-            ) : (
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#292744] text-white">
-                <FiFileText size={20} />
-              </div>
-            )}
+  {/* Center: title */}
+  <div className="min-w-0 flex-1 text-center">
+    <h1
+      className="truncate text-xl font-bold tracking-tight sm:text-2xl"
+      style={{ color: colors.title_form }}
+    >
+      {formData.title || "Contact"}
+    </h1>
 
-            <div className="min-w-0">
-              <p
-                className="truncate text-sm font-bold"
-                style={{ color: colors.title_form }}
-              >
-                {formData.title || "Contact"}
-              </p>
+    <div className="mt-1 flex items-center justify-center gap-2">
+      <span className="h-px w-6 bg-gradient-to-r from-transparent to-gray-300" />
+      <p className="text-[10px] font-medium uppercase tracking-[.25em] text-gray-400">
+        Online Form
+      </p>
+      <span className="h-px w-6 bg-gradient-to-l from-transparent to-gray-300" />
+    </div>
+  </div>
 
-              <p className="mt-0.5 text-[10px] uppercase tracking-[.16em] text-gray-400">
-                Online Form
-              </p>
-            </div>
-          </div>
-
-          <div className="hidden items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-xs text-gray-500 sm:flex">
-            <span className="h-2 w-2 rounded-full bg-green-500" />
-            Live Form
-          </div>
-        </div>
+  {/* Right: live badge */}
+  <div className="flex w-24 shrink-0 justify-end sm:w-32">
+    <div className="hidden items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-xs text-gray-500 sm:flex">
+      <span className="h-2 w-2 rounded-full bg-green-500" />
+      Live Form
+    </div>
+  </div>
+</div>
 
         {/* Form Card */}
         <div className="overflow-hidden rounded-2xl border border-gray-200 shadow-[0_12px_45px_rgba(0,0,0,0.045)]">
 
           {/* Banner */}
-          {bannerUrl && (
-            <div className="relative w-full overflow-hidden bg-gray-100">
-              <img
-                src={bannerUrl}
-                alt={formData.title || "Form banner"}
-                className="h-[190px] w-full object-cover sm:h-[250px] md:h-[300px]"
-              />
-            </div>
-          )}
+         {bannerUrl && (
+  <div className="relative w-full aspect-video overflow-hidden bg-gray-100">
+    <img
+      src={bannerUrl}
+      alt={formData.title || "Form banner"}
+      className="h-full w-full object-cover"
+    />
+  </div>
+)}
 
           <div
             className="p-5 sm:p-8 md:p-10"

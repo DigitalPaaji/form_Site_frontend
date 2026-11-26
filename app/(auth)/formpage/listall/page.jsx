@@ -272,7 +272,7 @@ const Page = () => {
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-400">
                     <th className="px-6 py-4 font-semibold">#</th>
-                    <th className="px-6 py-4 font-semibold">Logo</th>
+                    <th className="px-6 py-4 font-semibold">Banner</th>
                     <th className="px-6 py-4 font-semibold">Form Details</th>
                     <th className="px-6 py-4 font-semibold">Status</th>
                     <th className="px-6 py-4 font-semibold">Form Link</th>
@@ -295,15 +295,15 @@ const Page = () => {
                       </td>
 
                       <td className="px-6 py-4">
-                        {form.logo ? (
+                        {form.bannerImage ? (
                           <img
-                            src={getBannerUrl(form.logo)}
+                            src={getBannerUrl(form.bannerImage)}
                             alt={form.title}
                             className="h-14 w-24 rounded-lg border border-gray-200 object-cover dark:border-gray-700"
                           />
                         ) : (
                           <div className="flex h-14 w-24 items-center justify-center rounded-lg bg-gray-100 text-xs text-gray-400 dark:bg-gray-800">
-                            No logo
+                            No banner Image
                           </div>
                         )}
                       </td>

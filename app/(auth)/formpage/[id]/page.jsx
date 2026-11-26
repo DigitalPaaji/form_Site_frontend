@@ -1078,94 +1078,88 @@ const handelDeletForm= async()=>{
                         {/* BANNER */}
           
                         {showBanner && (
-          
-                          <div className="mb-7 border-b border-gray-100 pb-6 ">
-          
-                            <div className="mb-3 flex items-center justify-between">
-          
-                              <p className="text-sm font-semibold text-gray-700">
-                                Form banner
-                              </p>
-          
-                              <div className="flex items-center gap-3">
-          
-                                {banner && (
-                                  <button
-                                    type="button"
-                                    onClick={removeBanner}
-                                    className="text-xs text-red-500"
-                                  >
-                                    Remove
-                                  </button>
-                                )}
-           
-                                <button
-                                  type="button"
-                                  onClick={() => setShowBanner(false)}
-                                  className="text-gray-400 hover:text-red-500"
-                                >
-                                  <FiX size={18} />
-                                </button>
-          
-                              </div>
-                            </div>
-          
-                            {banner ? (
-          
-                              <img
-                                src={URL.createObjectURL(banner)}
-                                alt="Form banner"
-                                className="h-48 w-full rounded-xl object-cover"
-                              />
-          
-                            ) : 
-                            existingBanner ? (<label htmlFor="banner" className="cursor-pointer" > <img 
-                                src={`${img_url}${existingBanner}`}
-                                alt="Form banner"
-                                className="h-48 w-full rounded-xl object-cover"
-                              />
-                              <input
-                                  type="file"
-                                  id="banner"
-                                  accept="image/*"
-                                  onChange={handleBannerChange}
-                                  className="hidden"
-                                />
-                              </label>
-                              ):
-                            
-                            (
-          
-                              <label htmlFor="banner" className="flex cursor-pointer flex-col items-center rounded-xl border-2 border-dashed border-gray-200 py-10 hover:bg-gray-50">
-          
-                                <FiImage
-                                  size={28}
-                                  className="mb-3 text-gray-400"
-                                />
-          
-                                <span className="text-sm font-medium">
-                                  Upload banner image
-                                </span>
-          
-                                <span className="mt-1 text-xs text-gray-400">
-                                  PNG, JPG or WEBP · Maximum 5MB · Recommended ratio 16 : 9
-                                </span>
-          
-                                <input
-                                  type="file"
-                                  id="banner"
-                                  accept="image/*"
-                                  onChange={handleBannerChange}
-                                  className="hidden"
-                                />
-          
-                              </label>
-          
-                            )}
-          
-                          </div>
-          
-                        )}
+  <div className="mb-7 border-b border-gray-100 pb-6">
+
+    <div className="mb-3 flex items-center justify-between">
+      <p className="text-sm font-semibold text-gray-700">
+        Form banner
+      </p>
+
+      <div className="flex items-center gap-3">
+        {banner && (
+          <button
+            type="button"
+            onClick={removeBanner}
+            className="text-xs text-red-500"
+          >
+            Remove
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setShowBanner(false)}
+          className="text-gray-400 hover:text-red-500"
+        >
+          <FiX size={18} />
+        </button>
+      </div>
+    </div>
+
+    {banner ? (
+      <div className="aspect-video w-full overflow-hidden rounded-xl bg-gray-100">
+        <img
+          src={URL.createObjectURL(banner)}
+          alt="Form banner"
+          className="h-full w-full object-cover"
+        />
+      </div>
+    ) : existingBanner ? (
+      <label htmlFor="banner" className="block aspect-video w-full cursor-pointer overflow-hidden rounded-xl bg-gray-100">
+        <img
+          src={`${img_url}${existingBanner}`}
+          alt="Form banner"
+          className="h-full w-full object-cover"
+        />
+
+        <input
+          type="file"
+          id="banner"
+          accept="image/*"
+          onChange={handleBannerChange}
+          className="hidden"
+        />
+      </label>
+    ) : (
+      <label
+        htmlFor="banner"
+        className="flex aspect-video w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 hover:bg-gray-50"
+      >
+        <FiImage
+          size={28}
+          className="mb-3 text-gray-400"
+        />
+
+        <span className="text-sm font-medium">
+          Upload banner image
+        </span>
+
+        <span className="mt-1 text-xs text-gray-400">
+          PNG, JPG or WEBP · Maximum 5MB · Recommended ratio 16:9
+        </span>
+
+        <input
+          type="file"
+          id="banner"
+          accept="image/*"
+          onChange={handleBannerChange}
+          className="hidden"
+        />
+      </label>
+    )}
+
+  </div>
+)}
           
                         {/* QUESTIONS */}
           

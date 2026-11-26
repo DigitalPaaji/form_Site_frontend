@@ -911,40 +911,37 @@ const initialColorFelds ={
                   </div>
 
                   {bannerPreview ? (
+  <div className="aspect-video w-full overflow-hidden rounded-xl bg-gray-100">
+    <img
+      src={bannerPreview}
+      alt="Form banner"
+      className="h-full w-full object-cover"
+    />
+  </div>
+) : (
+  <label className="flex aspect-video w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 hover:bg-gray-50">
 
-                    <img
-                      src={bannerPreview}
-                      alt="Form banner"
-                      className="h-48 w-full rounded-xl object-cover"
-                    />
+    <FiImage
+      size={28}
+      className="mb-3 text-gray-400"
+    />
 
-                  ) : (
+    <span className="text-sm font-medium">
+      Upload banner image
+    </span>
 
-                    <label className="flex cursor-pointer flex-col items-center rounded-xl border-2 border-dashed border-gray-200 py-10 hover:bg-gray-50">
+    <span className="mt-1 text-xs text-gray-400">
+      PNG, JPG or WEBP · Maximum 5MB · Recommended ratio 16:9
+    </span>
 
-                      <FiImage
-                        size={28}
-                        className="mb-3 text-gray-400"
-                      />
-
-                      <span className="text-sm font-medium">
-                        Upload banner image
-                      </span>
-
-                      <span className="mt-1 text-xs text-gray-400">
-                         PNG, JPG or WEBP · Maximum 5MB · Recommended ratio 16 : 9
-                      </span>
-
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleBannerChange}
-                        className="hidden"
-                      />
-
-                    </label>
-
-                  )}
+    <input
+      type="file"
+      accept="image/*"
+      onChange={handleBannerChange}
+      className="hidden"
+    />
+  </label>
+)}
 
                 </div>
 
