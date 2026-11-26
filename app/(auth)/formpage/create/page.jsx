@@ -105,6 +105,7 @@ const Page = () => {
   const [title, setTitle] = useState("Form Title");
   const [description, setDescription] = useState("");
   const [leadEmail, setleadEmail] = useState("");
+  const [logo,setLogo] =useState()
 const initialColorFelds ={
   bg_form:"#F7F7F8",
     label_form:"#364153",
@@ -500,6 +501,9 @@ const initialColorFelds ={
       if (banner) {
         formData.append("banner", banner);
       }
+      if (logo) {
+        formData.append("logo", logo);
+      }
 
       const response = await axios.post(
         `${base_url}/auth/create`,
@@ -664,7 +668,7 @@ const initialColorFelds ={
             style={{backgroundColor:colorfelds.bg_form}}
           
           >
- {!showColor &&  <button onClick={()=>setShowColor(true)} className="absolute top-2  right-0 text-xl bg-blue-500 px-2 rounded-s-2xl">🎨</button>}
+ {!showColor &&  <button onClick={()=>setShowColor(true)} className="absolute top-2   right-0 text-xl bg-blue-500 px-2 rounded-s-2xl">🎨</button>}
 <div className={`absolute top-0  z-50 w-72 bg-white/95 backdrop-blur-xl border border-slate-200 rounded-2xl shadow-2xl shadow-slate-900/10 ${showColor? "right-4" :"-right-full"} duration-200 `}>
 
   {/* Header */}
@@ -755,7 +759,13 @@ const initialColorFelds ={
     </p>
   </div>
 </div>
-            <div className="mx-auto max-w-2xl relative overflow-hidden " >
+
+
+
+
+
+            <div className="mx-auto relative max-w-2xl  overflow-hidden  " >
+
 
             
    
@@ -769,34 +779,101 @@ const initialColorFelds ={
 
 
 
-              <div className="mb-6 border-b border-gray-100 pb-6">
+              
+<div className="mb-5 border-b border-gray-100 pb-5">
+  <div className="grid grid-cols-1 md:grid-cols-[88px_1fr] gap-5 items-start">
 
-                <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Form title"
-                  className="pe-5 border-b min-w-[20px] field-sizing-content  border-dashed bg-transparent text-2xl font-bold text-gray-800 outline-none"
-                  style={{color:colorfelds.title_form}}
-                />
+    {/* Logo Upload */}
+    <div className="flex flex-col items-center gap-1.5">
+      <label
+        htmlFor="logo"
+        className="group relative flex h-[88px] w-[88px] cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:border-gray-400 hover:shadow"
+      >
+        {logo ? (
+          <>
+            <img
+              src={URL.createObjectURL(logo)}
+              alt="Logo preview"
+              className="h-full w-full object-contain p-2"
+            />
+            <span className="absolute inset-0 flex items-center justify-center bg-black/40 text-[10px] font-medium uppercase tracking-wider text-white opacity-0 transition-opacity group-hover:opacity-100">
+              Change
+            </span>
+          </>
+        ) : (
+          <div className="flex flex-col items-center gap-1 text-gray-400 transition-colors group-hover:text-gray-700">
+            <FiImage size={20} strokeWidth={1.5} />
+            <span className="text-[10px] font-medium tracking-wide">Logo</span>
+          </div>
+        )}
 
+        <input
+          type="file"
+          id="logo"
+          accept="image/png,image/jpeg,image/webp"
+          hidden
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) setLogo(file);
+          }}
+        />
+      </label>
 
-               <input
-                  value={leadEmail}
-                  onChange={(e) => setleadEmail(e.target.value)}
-                  placeholder="Lead send Email"
-                  className="w-full pe-5 border-b min-w-[20px] field-sizing-content  border-dashed  mt-3  bg-transparent text-xl font-bold text-green-800 outline-none "   
-                               />
+      <span className="text-[10px] text-gray-400">500 × 500 px</span>
+    </div>
 
+    {/* Form Details */}
+    <div className="flex min-w-0 flex-col gap-4">
 
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Write a short description..."
-                  rows={2}
-                  className="mt-3 pe-5 px-2 py-5 border min-w-[20px] field-sizing-content  border-dashed w-full resize-none bg-transparent text-sm text-gray-500 outline-none"
-                />
+      {/* Form Title */}
+      <div>
+        <label className="mb-1 block text-[10px] font-medium uppercase tracking-[0.12em] text-gray-400">
+          Form Title
+        </label>
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Untitled form"
+          className="w-full border-0 border-b border-gray-200 bg-transparent pb-1.5 text-xl font-semibold tracking-tight text-gray-900 outline-none transition-colors placeholder:font-normal placeholder:text-gray-300 focus:border-gray-900"
+          style={{ color: colorfelds.title_form }}
+        />
+      </div>
 
-              </div>
+      {/* Lead Email + Description side by side on larger screens */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+
+        {/* Lead Email */}
+        <div>
+          <label className="mb-1 block text-[10px] font-medium uppercase tracking-[0.12em] text-gray-400">
+            Lead Notification Email
+          </label>
+          <input
+            type="email"
+            value={leadEmail}
+            onChange={(e) => setleadEmail(e.target.value)}
+            placeholder="you@company.com"
+            className="w-full border-0 border-b border-gray-200 bg-transparent pb-1.5 text-sm text-gray-800 outline-none transition-colors placeholder:text-gray-300 focus:border-gray-900"
+          />
+        </div>
+
+        {/* Description */}
+        <div>
+          <label className="mb-1 block text-[10px] font-medium uppercase tracking-[0.12em] text-gray-400">
+            Form Description
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="A short description of your form"
+            rows={1}
+            className="w-full resize-none border-0 border-b border-gray-200 bg-transparent pb-1.5 text-sm leading-relaxed text-gray-600 outline-none transition-colors placeholder:text-gray-300 focus:border-gray-900"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 
               {/* BANNER */}
 
@@ -855,7 +932,7 @@ const initialColorFelds ={
                       </span>
 
                       <span className="mt-1 text-xs text-gray-400">
-                        PNG, JPG or WEBP · Maximum 5MB
+                         PNG, JPG or WEBP · Maximum 5MB · Recommended ratio 16 : 9
                       </span>
 
                       <input

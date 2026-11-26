@@ -151,8 +151,10 @@ const initialColorFelds ={
 
   // BANNER
   const [banner, setBanner] = useState(null);
-  const [bannerPreview, setBannerPreview] = useState("");
+   const [logo,setLogo] =useState()
+ 
   const [existingBanner, setExistingBanner] = useState("");
+  const [existingLogo, setExistingLogo] = useState("");
   const [showBanner, setShowBanner] = useState(false);
  const [showColor,setShowColor]=useState(false);
 
@@ -176,11 +178,6 @@ const initialColorFelds ={
     return `${img_url.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
   };
 
-  const displayedBanner = bannerPreview
-    ? bannerPreview
-    : !removeExistingBanner && existingBanner
-      ? getBannerUrl(existingBanner)
-      : "";
 
   // ------------------------------------
   // FETCH EXISTING FORM
@@ -219,8 +216,8 @@ const initialColorFelds ={
       setStatus(form.status || "draft");
 
       setExistingBanner(form.bannerImage || "");
+      setExistingLogo(form.logo || "");
       setBanner(null);
-      setBannerPreview("");
       setRemoveExistingBanner(false);
 
       setShowBanner(Boolean(form.bannerImage));
@@ -261,12 +258,9 @@ const initialColorFelds ={
       return;
     }
 
-    if (bannerPreview) {
-      URL.revokeObjectURL(bannerPreview);
-    }
-
+ 
     setBanner(file);
-    setBannerPreview(URL.createObjectURL(file));
+   
     setRemoveExistingBanner(false);
     setShowBanner(true);
 
@@ -274,32 +268,21 @@ const initialColorFelds ={
   };
 
   const removeBanner = () => {
-    if (bannerPreview) {
-      URL.revokeObjectURL(bannerPreview);
-    }
+ 
 
     setBanner(null);
-    setBannerPreview("");
+  
     setRemoveExistingBanner(true);
   };
 
   const undoBannerChange = () => {
-    if (bannerPreview) {
-      URL.revokeObjectURL(bannerPreview);
-    }
+    
 
     setBanner(null);
-    setBannerPreview("");
+
     setRemoveExistingBanner(false);
   };
 
-  useEffect(() => {
-    return () => {
-      if (bannerPreview) {
-        URL.revokeObjectURL(bannerPreview);
-      }
-    };
-  }, [bannerPreview]);
 
   // ------------------------------------
   // ADD FIELD
@@ -634,7 +617,9 @@ const initialColorFelds ={
       if (banner) {
         formData.append("banner", banner);
       }
-
+     if (logo) {
+        formData.append("logo", logo);
+      }
       formData.append(
         "removeBanner",
         String(removeExistingBanner)
@@ -671,12 +656,10 @@ const initialColorFelds ={
         await fetchData();
       }
 
-      if (bannerPreview) {
-        URL.revokeObjectURL(bannerPreview);
-      }
+    
 
       setBanner(null);
-      setBannerPreview("");
+
       setRemoveExistingBanner(false);
 
     } catch (error) {
@@ -975,6 +958,9 @@ const handelDeletForm= async()=>{
               </p>
             </div>
           </div>
+
+
+
                       <div className="mx-auto max-w-2xl relative overflow-hidden " >
           
                       
@@ -989,33 +975,104 @@ const handelDeletForm= async()=>{
           
           
           
-                        <div className="mb-6 border-b border-gray-100 pb-6">
-          
-                          <input
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            placeholder="Form title"
-                            className="pe-5 border-b min-w-[20px] field-sizing-content  border-dashed bg-transparent text-2xl font-bold text-gray-800 outline-none"
-                            style={{color:colorfelds.title_form}}
-                          />
-          
-          
-                         <input
-                            value={leadEmail}
-                            onChange={(e) => setleadEmail(e.target.value)}
-                            placeholder="Lead send Email"
-                            className="w-full pe-5 border-b min-w-[20px] field-sizing-content  border-dashed  mt-3  bg-transparent text-xl font-bold text-green-800 outline-none "   
-                                         />
-          
-          
-                          <textarea
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            placeholder="Write a short description..."
-                            rows={2}
-                            className="mt-3 pe-5 px-2 py-5 border min-w-[20px] field-sizing-content  border-dashed w-full resize-none bg-transparent text-sm text-gray-500 outline-none"
-                          />
-          
+                        <div className="mb-5 border-b border-gray-100 pb-5">
+                          <div className="grid grid-cols-1 md:grid-cols-[88px_1fr] gap-5 items-start">
+                        
+                            {/* Logo Upload */}
+                            <div className="flex flex-col items-center gap-1.5">
+                              <label
+                                htmlFor="logo"
+                                className="group relative flex h-[88px] w-[88px] cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:border-gray-400 hover:shadow"
+                              >
+                                {logo ? (
+                                  <>
+                                    <img
+                                      src={URL.createObjectURL(logo)}
+                                      alt="Logo preview"
+                                      className="h-full w-full object-contain p-2"
+                                    />
+                                    <span className="absolute inset-0 flex items-center justify-center bg-black/40 text-[10px] font-medium uppercase tracking-wider text-white opacity-0 transition-opacity group-hover:opacity-100">
+                                      Change
+                                    </span>
+                                  </>
+                                ) : (
+                                  <div className="flex flex-col items-center gap-1 text-gray-400 transition-colors group-hover:text-gray-700">
+                                   
+                                     <img
+                                      src={`${img_url}${existingLogo}`}
+                                      alt="Logo preview"
+                                      className="h-full w-full object-contain p-2"
+                                    />
+                                    {/* <FiImage size={20} strokeWidth={1.5} />
+                                    <span className="text-[10px] font-medium tracking-wide">Logo</span> */}
+                                  </div>
+                                )}
+                        
+                                <input
+                                  type="file"
+                                  id="logo"
+                                  accept="image/png,image/jpeg,image/webp"
+                                  hidden
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) setLogo(file);
+                                  }}
+                                />
+                              </label>
+                        
+                              <span className="text-[10px] text-gray-400">500 × 500 px</span>
+                            </div>
+                        
+                            {/* Form Details */}
+                            <div className="flex min-w-0 flex-col gap-4">
+                        
+                              {/* Form Title */}
+                              <div>
+                                <label className="mb-1 block text-[10px] font-medium uppercase tracking-[0.12em] text-gray-400">
+                                  Form Title
+                                </label>
+                                <input
+                                  value={title}
+                                  onChange={(e) => setTitle(e.target.value)}
+                                  placeholder="Untitled form"
+                                  className="w-full border-0 border-b border-gray-200 bg-transparent pb-1.5 text-xl font-semibold tracking-tight text-gray-900 outline-none transition-colors placeholder:font-normal placeholder:text-gray-300 focus:border-gray-900"
+                                  style={{ color: colorfelds.title_form }}
+                                />
+                              </div>
+                        
+                              {/* Lead Email + Description side by side on larger screens */}
+                              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        
+                                {/* Lead Email */}
+                                <div>
+                                  <label className="mb-1 block text-[10px] font-medium uppercase tracking-[0.12em] text-gray-400">
+                                    Lead Notification Email
+                                  </label>
+                                  <input
+                                    type="email"
+                                    value={leadEmail}
+                                    onChange={(e) => setleadEmail(e.target.value)}
+                                    placeholder="you@company.com"
+                                    className="w-full border-0 border-b border-gray-200 bg-transparent pb-1.5 text-sm text-gray-800 outline-none transition-colors placeholder:text-gray-300 focus:border-gray-900"
+                                  />
+                                </div>
+                        
+                                {/* Description */}
+                                <div>
+                                  <label className="mb-1 block text-[10px] font-medium uppercase tracking-[0.12em] text-gray-400">
+                                    Form Description
+                                  </label>
+                                  <textarea
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    placeholder="A short description of your form"
+                                    rows={1}
+                                    className="w-full resize-none border-0 border-b border-gray-200 bg-transparent pb-1.5 text-sm leading-relaxed text-gray-600 outline-none transition-colors placeholder:text-gray-300 focus:border-gray-900"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
           
                         {/* BANNER */}
@@ -1041,7 +1098,7 @@ const handelDeletForm= async()=>{
                                     Remove
                                   </button>
                                 )}
-          
+           
                                 <button
                                   type="button"
                                   onClick={() => setShowBanner(false)}
@@ -1053,17 +1110,33 @@ const handelDeletForm= async()=>{
                               </div>
                             </div>
           
-                            {bannerPreview ? (
+                            {banner ? (
           
                               <img
-                                src={bannerPreview}
+                                src={URL.createObjectURL(banner)}
                                 alt="Form banner"
                                 className="h-48 w-full rounded-xl object-cover"
                               />
           
-                            ) : (
+                            ) : 
+                            existingBanner ? (<label htmlFor="banner" className="cursor-pointer" > <img 
+                                src={`${img_url}${existingBanner}`}
+                                alt="Form banner"
+                                className="h-48 w-full rounded-xl object-cover"
+                              />
+                              <input
+                                  type="file"
+                                  id="banner"
+                                  accept="image/*"
+                                  onChange={handleBannerChange}
+                                  className="hidden"
+                                />
+                              </label>
+                              ):
+                            
+                            (
           
-                              <label className="flex cursor-pointer flex-col items-center rounded-xl border-2 border-dashed border-gray-200 py-10 hover:bg-gray-50">
+                              <label htmlFor="banner" className="flex cursor-pointer flex-col items-center rounded-xl border-2 border-dashed border-gray-200 py-10 hover:bg-gray-50">
           
                                 <FiImage
                                   size={28}
@@ -1075,11 +1148,12 @@ const handelDeletForm= async()=>{
                                 </span>
           
                                 <span className="mt-1 text-xs text-gray-400">
-                                  PNG, JPG or WEBP · Maximum 5MB
+                                  PNG, JPG or WEBP · Maximum 5MB · Recommended ratio 16 : 9
                                 </span>
           
                                 <input
                                   type="file"
+                                  id="banner"
                                   accept="image/*"
                                   onChange={handleBannerChange}
                                   className="hidden"

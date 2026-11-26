@@ -52,7 +52,7 @@ const FormPage = () => {
     title_form: formData?.formcolors?.title_form || "#630303",
   };
 
-  // Image URL
+  // Image URL helper
   const getImageUrl = (image) => {
     if (!image || image === "null") return "";
 
@@ -96,10 +96,7 @@ const FormPage = () => {
       setLoading(true);
       setFormNotFound(false);
 
-      const response = await axios.get(
-        `${base_url}/user/get/${slug}`
-      );
-
+      const response = await axios.get(`${base_url}/user/get/${slug}`);
       const data = response.data;
 
       if (data.success && data.formData) {
@@ -413,8 +410,9 @@ const FormPage = () => {
               onChange={(e) => handleChange(field, e.target.value)}
               className={`${getInputClass(field)} appearance-none pr-10 cursor-pointer`}
             >
-              <option value="" disabled>--  select ---</option>
-              
+              <option value="" disabled>
+                -- select --
+              </option>
 
               {options.map((option, index) => (
                 <option key={index} value={option}>
@@ -436,7 +434,9 @@ const FormPage = () => {
               return (
                 <label
                   key={index}
-                  className={`lux-choice ${checked ? "lux-choice-active" : ""}`}
+                  className={`lux-choice ${
+                    checked ? "lux-choice-active" : ""
+                  }`}
                 >
                   <input
                     type="radio"
@@ -473,7 +473,9 @@ const FormPage = () => {
                 return (
                   <label
                     key={index}
-                    className={`lux-choice ${checked ? "lux-choice-active" : ""}`}
+                    className={`lux-choice ${
+                      checked ? "lux-choice-active" : ""
+                    }`}
                   >
                     <input
                       type="checkbox"
@@ -561,7 +563,6 @@ const FormPage = () => {
       setSubmitting(true);
       setSubmitError("");
 
-      // Dynamic field data
       const submissionData = {};
 
       fields.forEach((field) => {
@@ -570,19 +571,15 @@ const FormPage = () => {
         submissionData[field.label] = values[getFieldKey(field)];
       });
 
-      // Only accepted consents
       const acceptedConsents = consents.filter(
         (_, index) => values[`consent_${index}`] === true
       );
 
-      const response = await axios.post(
-        `${base_url}/user/submit`,
-        {
-          formId: formData._id,
-          submissionData,
-          consents: acceptedConsents,
-        }
-      );
+      const response = await axios.post(`${base_url}/user/submit`, {
+        formId: formData._id,
+        submissionData,
+        consents: acceptedConsents,
+      });
 
       if (response.data.success) {
         setSubmitted(true);
@@ -613,7 +610,7 @@ const FormPage = () => {
       setTouched({});
       setSubmitError("");
       setSubmitted(false);
-    }, 3000);
+    }, 1000);
 
     return () => clearTimeout(timer);
   }, [submitted, formData]);
@@ -625,7 +622,10 @@ const FormPage = () => {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#f7f7f8] p-5">
         <div className="w-full max-w-md rounded-2xl border bg-white p-9 text-center shadow-sm">
-          <FiAlertCircle size={30} className="mx-auto mb-5 text-red-500" />
+          <FiAlertCircle
+            size={30}
+            className="mx-auto mb-5 text-red-500"
+          />
 
           <h1 className="text-2xl font-bold text-gray-900">
             Form not found
@@ -677,7 +677,9 @@ const FormPage = () => {
     );
   }
 
-  const bannerUrl = getImageUrl(formData.bannerImage);
+  // Banner and logo URLs
+  const bannerUrl = getImageUrl(formData?.bannerImage);
+  const logoUrl = getImageUrl(formData?.logo);
 
   return (
     <main
@@ -757,14 +759,29 @@ const FormPage = () => {
 
         {/* Header */}
         <div className="mb-6 flex items-center justify-between px-1">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#292744] text-white">
-              <FiFileText size={20} />
-            </div>
+          <div className="flex min-w-0 items-center gap-3">
 
-            <div>
-              <p className="text-sm font-bold" style={{ color: colors.title_form }}>
-                Contact
+            {/* Logo if available, otherwise default icon */}
+            {logoUrl ? (
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white p-1">
+                <img
+                  src={logoUrl}
+                  alt={`${formData.title || "Form"} logo`}
+                  className="h-full w-full object-contain"
+                />
+              </div>
+            ) : (
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#292744] text-white">
+                <FiFileText size={20} />
+              </div>
+            )}
+
+            <div className="min-w-0">
+              <p
+                className="truncate text-sm font-bold"
+                style={{ color: colors.title_form }}
+              >
+                {formData.title || "Contact"}
               </p>
 
               <p className="mt-0.5 text-[10px] uppercase tracking-[.16em] text-gray-400">
@@ -787,7 +804,7 @@ const FormPage = () => {
             <div className="relative w-full overflow-hidden bg-gray-100">
               <img
                 src={bannerUrl}
-                alt={formData.title}
+                alt={formData.title || "Form banner"}
                 className="h-[190px] w-full object-cover sm:h-[250px] md:h-[300px]"
               />
             </div>
@@ -800,7 +817,8 @@ const FormPage = () => {
 
             {/* Title */}
             <div className="mb-8">
-              <div className="mb-4 inline-flex items-center gap-2 rounded-md bg-white/70 px-3 py-1.5 text-[11px] font-semibold"
+              <div
+                className="mb-4 inline-flex items-center gap-2 rounded-md bg-white/70 px-3 py-1.5 text-[11px] font-semibold"
                 style={{ color: colors.label_form }}
               >
                 <FiFileText size={13} />
@@ -836,7 +854,10 @@ const FormPage = () => {
                   </p>
                 </div>
 
-                <span className="text-sm font-bold" style={{ color: colors.label_form }}>
+                <span
+                  className="text-sm font-bold"
+                  style={{ color: colors.label_form }}
+                >
                   {progress}%
                 </span>
               </div>
@@ -869,7 +890,10 @@ const FormPage = () => {
                   Your Information
                 </h2>
 
-                <p className="mt-0.5 text-xs" style={{ color: colors.label_form }}>
+                <p
+                  className="mt-0.5 text-xs"
+                  style={{ color: colors.label_form }}
+                >
                   Please provide the details below
                 </p>
               </div>
@@ -893,7 +917,9 @@ const FormPage = () => {
                   return (
                     <div
                       key={key || index}
-                      className={`lux-field ${error ? "lux-field-error" : ""}`}
+                      className={`lux-field ${
+                        error ? "lux-field-error" : ""
+                      }`}
                     >
                       {!isContentField && (
                         <div className="mb-2.5 flex items-center justify-between gap-2">
@@ -941,10 +967,7 @@ const FormPage = () => {
                 })}
               </div>
 
-              {/* ================================= */}
-              {/* CONSENTS SECTION */}
-              {/* ================================= */}
-
+              {/* Consents Section */}
               {consents.length > 0 && (
                 <div className="mt-9 border-t border-gray-200 pt-7">
 
@@ -991,7 +1014,6 @@ const FormPage = () => {
                           }`}
                         >
                           <label className="flex cursor-pointer items-start gap-3">
-
                             <input
                               type="checkbox"
                               checked={checked}
@@ -1060,7 +1082,8 @@ const FormPage = () => {
                 <div className="flex flex-col-reverse gap-5 sm:flex-row sm:items-center sm:justify-between">
 
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-100 bg-white/80"
+                    <div
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-100 bg-white/80"
                       style={{ color: colors.label_form }}
                     >
                       <FiShield size={17} />
@@ -1134,7 +1157,6 @@ const FormPage = () => {
             </span>
           </div>
         </div>
-
       </div>
     </main>
   );

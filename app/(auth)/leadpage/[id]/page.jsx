@@ -522,7 +522,7 @@ const LeadSection = () => {
                     </tr>
                   </thead>
 
-{console.log(leads)}
+
 
                   <tbody className="divide-y divide-gray-100">
                     {leads.map((lead, index) => {
