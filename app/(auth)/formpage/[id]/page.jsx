@@ -30,14 +30,17 @@ import {
   FiMenu,
   FiCopy,
   FiUploadCloud,
+  FiDroplet,
 } from "react-icons/fi";
 
 import { GiVerticalBanner } from "react-icons/gi";
 import { IoText } from "react-icons/io5";
-import { MdOutlineMessage, MdUpdate, MdViewWeek } from "react-icons/md";
+import { MdCancelPresentation, MdOutlineMessage, MdUpdate, MdViewWeek } from "react-icons/md";
 import { BsCalendar2MonthFill } from "react-icons/bs";
 import { IoIosColorPalette } from "react-icons/io";
 import { RxDividerHorizontal } from "react-icons/rx";
+import { SiAuthelia } from "react-icons/si";
+import { TiDelete } from "react-icons/ti";
 
 // ------------------------------------
 // FIELD TYPES
@@ -124,8 +127,16 @@ const createField = (item) => ({
 export default function Page() {
   const dispatch = useDispatch();
   const { id } = useParams();
+const initialColorFelds ={
+  bg_form:"#F7F7F8",
+    label_form:"#364153",
+    title_form:"#252525"
+}
 
+  const [colorfelds,setColorFelds]=useState(initialColorFelds)
   const [title, setTitle] = useState("Untitled Form");
+
+  const [consents,setConsents]=useState([ ])
   const [description, setDescription] = useState("");
   const [leadEmail, setleadEmail] = useState("");
   
@@ -143,6 +154,8 @@ export default function Page() {
   const [bannerPreview, setBannerPreview] = useState("");
   const [existingBanner, setExistingBanner] = useState("");
   const [showBanner, setShowBanner] = useState(false);
+ const [showColor,setShowColor]=useState(false);
+
   const [removeExistingBanner, setRemoveExistingBanner] = useState(false);
 
   // DRAG STATE
@@ -193,6 +206,8 @@ export default function Page() {
       const form = data.formPage;
 
       setTitle(form.title || "Untitled Form");
+      setColorFelds(form.formcolors || initialColorFelds);
+      setConsents(form.consents || [ ]);
       setDescription(form.description || "");
       setleadEmail(form.leadEmail || "");
       setSlug(form.slug || "");
@@ -584,10 +599,10 @@ export default function Page() {
       return;
     }
 
-    if (!banner && !existingBanner && !removeExistingBanner) {
-      toast.error("Please upload a form banner");
-      return;
-    }
+    // if (!banner && !existingBanner && !removeExistingBanner) {
+    //   toast.error("Please upload a form banner");
+    //   return;
+    // }
 
     const preparedFields = fields.map((field) => ({
       label: field.label.trim(),
@@ -613,6 +628,8 @@ export default function Page() {
       formData.append("fields", JSON.stringify(preparedFields));
       formData.append("status", status);
       formData.append("leadEmail", leadEmail);
+       formData.append("formcolors", JSON.stringify(colorfelds));
+      formData.append("consents", JSON.stringify(consents));
 
       if (banner) {
         formData.append("banner", banner);
@@ -692,6 +709,31 @@ const handelDeletForm= async()=>{
     
   }
 }
+
+ const handelColor = (e)=>{
+      const {name,value} = e.target;
+      setColorFelds(prev=>({...prev,[name]:value}))
+    }
+    const resetColor=()=>{
+      setColorFelds(initialColorFelds)
+    }
+    const handelChageConsent=(value,index)=>{
+       setConsents((prev) => {
+    const updated = [...prev];
+
+    updated[index] = value;
+
+    return updated;
+  });
+    }
+
+  const handelDelete =(index)=>{
+     const filterConsents = consents.filter((_, i) => i !== index);
+
+    setConsents(filterConsents)
+  }
+
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
@@ -817,6 +859,18 @@ const handelDeletForm= async()=>{
                   </button>
                 );
               })}
+            <button
+                type="button"
+                onClick={() => setConsents(prev=>([...prev,`Consent ${consents.length+1}`]))}
+                className="  cursor-pointer col-span-1 flex items-center gap-3 bg-white rounded-lg border border-gray-100 p-3 text-left hover:border-blue-600 hover:bg-blue-200"
+              >
+                <SiAuthelia size={19} />
+
+                <span className="text-sm font-medium">
+                  Add consent 
+                </span>
+              </button>
+
             </div>
        <div className="flex justify-center mt-5 ">
         <button onClick={handelDeletForm} className="bg-blue-800 text-white cursor-pointer font-semibold  text-sm px-3 py-1 rounded-xl">Delete Form </button>
@@ -826,452 +880,582 @@ const handelDeletForm= async()=>{
 
           {/* FORM AREA */}
 
-          <main className="min-h-[650px] min-w-0 rounded-xl border border-gray-200 bg-white/40 p-5 shadow-2xl md:p-8">
-            <div className="mx-auto max-w-2xl">
-
-              {/* FORM TITLE */}
-
-              <div className="mb-6 border-b border-gray-100 pb-6">
-                <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Form title"
-                  className="w-full border-0 bg-transparent text-2xl font-bold text-gray-800 outline-none"
-                />
-
-
-                 <input
-                  value={leadEmail}
-                  onChange={(e) => setleadEmail(e.target.value)}
-                  placeholder="Lead send Email"
-                  className="w-full border-0 mt-3 bg-transparent text-xl font-bold text-green-800 outline-none "
-                />
-
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Write a short description..."
-                  rows={2}
-                  className="mt-3 w-full resize-none border-0 bg-transparent text-sm text-gray-500 outline-none"
-                />
-              </div>
-
-              {/* BANNER */}
-
-              {showBanner && (
-                <div className="mb-7 border-b border-gray-100 pb-6">
-                  <div className="mb-3 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-700">
-                        Form banner
-                      </p>
-                      <p className="mt-1 text-xs text-gray-400">
-                        JPG, PNG or WEBP · Maximum 5MB
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      {displayedBanner && (
-                        <button
-                          type="button"
-                          onClick={removeBanner}
-                          className="text-xs text-red-500"
-                        >
-                          Remove
-                        </button>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={() => setShowBanner(false)}
-                        className="text-gray-400 hover:text-red-500"
-                      >
-                        <FiX size={18} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {displayedBanner ? (
-                    <div className="relative overflow-hidden rounded-xl border border-gray-200">
-                      <img
-                        src={displayedBanner}
-                        alt="Form banner"
-                        className="h-48 w-full object-cover"
-                      />
-
-                      <label className="absolute right-3 top-3 flex cursor-pointer items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-md hover:bg-gray-100">
-                        <FiUploadCloud />
-                        Replace
-
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleBannerChange}
-                          className="hidden"
-                        />
-                      </label>
-
-                      {bannerPreview && (
-                        <span className="absolute bottom-3 left-3 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white">
-                          New image selected
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <label className="flex cursor-pointer flex-col items-center rounded-xl border-2 border-dashed border-gray-200 py-10 hover:bg-gray-50">
-                      <FiImage
-                        size={28}
-                        className="mb-3 text-gray-400"
-                      />
-
-                      <span className="text-sm font-medium">
-                        Upload banner image
-                      </span>
-
-                      <span className="mt-1 text-xs text-gray-400">
-                        PNG, JPG or WEBP · Maximum 5MB
-                      </span>
-
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleBannerChange}
-                        className="hidden"
-                      />
-                    </label>
-                  )}
-
-                  {(banner || removeExistingBanner) && (
-                    <div className="mt-3 flex items-center justify-between rounded-lg border border-blue-100 bg-blue-50 px-3 py-2">
-                      <p className="text-xs text-blue-700">
-                        {banner
-                          ? "New banner will be uploaded when you save."
-                          : "Banner will be removed when you save."}
-                      </p>
-
-                      <button
-                        type="button"
-                        onClick={undoBannerChange}
-                        className="text-xs font-semibold text-blue-700 hover:underline"
-                      >
-                        Undo
-                      </button>
-                    </div>
-                  )}
+           <main className="min-h-[650px] overflow-hidden rounded-xl relative border border-gray-200  p-5 md:p-8 shadow-2xl "
+                      style={{backgroundColor:colorfelds.bg_form}}
+                    
+                    >
+           {!showColor &&  <button onClick={()=>setShowColor(true)} className="absolute top-2  right-0 text-xl bg-blue-500 px-2 rounded-s-2xl">🎨</button>}
+          <div className={`absolute top-0  z-50 w-72 bg-white/95 backdrop-blur-xl border border-slate-200 rounded-2xl shadow-2xl shadow-slate-900/10 ${showColor? "right-4" :"-right-full"} duration-200 `}>
+          
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-purple-50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-lg shadow-md shadow-indigo-200">
+                  <FiDroplet />
                 </div>
-              )}
-
-              {/* QUESTIONS */}
-
-              <div className="space-y-4">
-                {fields.length === 0 && (
-                  <div className="flex min-h-64 flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 text-center">
-                    <FiPlus
-                      size={30}
-                      className="mb-3 text-gray-300"
-                    />
-
-                    <p className="font-medium text-gray-700">
-                      No questions added
-                    </p>
-
-                    <p className="mt-1 text-sm text-gray-400">
-                      Choose a question type from the sidebar
-                    </p>
-                  </div>
-                )}
-
-                {fields.map((field, index) => (
-                  <div
-                    key={field._key}
-                    onDragOver={(e) =>
-                      handleDragOver(e, field._key)
-                    }
-                    onDrop={(e) =>
-                      handleDrop(e, field._key)
-                    }
-                    className={`rounded-xl border bg-white p-4 transition-all ${
-                      draggingId === field._key
-                        ? "scale-[0.98] border-blue-400 opacity-40"
-                        : dragOverId === field._key
-                          ? "border-blue-500 border-dashed bg-blue-50"
-                          : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-
-                    {/* QUESTION HEADER */}
-
-                    <div className="mb-3 flex items-start gap-3">
-
-                      {/* DRAG HANDLE */}
-
-                      <div
-                        draggable
-                        onDragStart={(e) =>
-                          handleDragStart(e, field._key)
-                        }
-                        onDragEnd={handleDragEnd}
-                        className="mt-1 cursor-grab touch-none rounded-md p-1 text-gray-400 hover:bg-gray-100 active:cursor-grabbing"
-                        title="Drag to reorder"
-                      >
-                        <FiMenu size={19} />
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="mb-1 flex items-center gap-2">
-                       
-
-
-                          <span className="rounded bg-gray-100 px-2 py-0.5 text-[10px] font-medium uppercase text-gray-500">
-                            {field.type}
-                          </span>
-                        </div>
-
-                        {/* LABEL */}
-
-                        <div className="flex items-center">
-                          <input
-                            type="text"
-                            value={field.label}
-                            onChange={(e) =>
-                              updateField(field._key, {
-                                label: e.target.value,
-                              })
-                            }
-                            placeholder="Enter question"
-                            className="w-auto min-w-[20px] field-sizing-content border-0 bg-transparent p-1 text-base font-semibold text-gray-800 outline-none focus:bg-gray-50"
-                          />
-
-                          {field.required && (
-                            <span className="text-red-700">*</span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* ACTIONS */}
-
-                      <div className="flex items-center gap-1">
-                        {/* <button
-                          type="button"
-                          onClick={() => duplicateField(field)}
-                          title="Duplicate question"
-                          className="rounded-lg p-2 text-gray-400 hover:bg-blue-50 hover:text-blue-600"
-                        >
-                          <FiCopy size={16} />
-                        </button> */}
-
-                        <button
-                          type="button"
-                          onClick={() => deleteField(field._key)}
-                          title="Delete question"
-                          className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500"
-                        >
-                          <FiTrash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* DIVIDER */}
-
-                    {field.type === "divider" && (
-                      <div className="mb-4 py-3">
-                        <hr className="border-gray-300" />
-                      </div>
-                    )}
-
-                    {/* PLACEHOLDER */}
-
-                    {!OPTIONS_TYPES.includes(field.type) &&
-                      ![
-                        "date",
-                        "time",
-                        "datetime",
-                        "month",
-                        "week",
-                        "color",
-                        "divider",
-                        "paragraph",
-                      ].includes(field.type) && (
-                        <input
-                          type="text"
-                          value={field.placeholder}
-                          onChange={(e) =>
-                            updateField(field._key, {
-                              placeholder: e.target.value,
-                            })
-                          }
-                          placeholder="Placeholder (optional)"
-                          className="mb-3 w-full rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm text-gray-600/80 outline-none focus:border-gray-300"
-                        />
-                      )}
-
-                    {/* PREVIEW */}
-
-                    {![
-                      "paragraph",
-                      "divider",
-                      "text",
-                      "email",
-                      "textarea",
-                      "number",
-                      "phone",
-                      "select",
-                      "radio",
-                      "checkbox",
-                    ].includes(field.type) && (
-                      <div className="mb-4">
-                        {renderFieldInput(field)}
-                      </div>
-                    )}
-
-                    {/* OPTIONS EDITOR */}
-
-                    {OPTIONS_TYPES.includes(field.type) && (
-                      <div className="mb-4 rounded-lg bg-gray-50 p-3">
-                        <div className="mb-3 flex items-center justify-between">
-                          <p className="text-xs font-semibold text-gray-600">
-                            {field.type === "select"
-                              ? "Dropdown options"
-                              : field.type === "radio"
-                                ? "Answer choices"
-                                : "Checkbox choices"}
-                          </p>
-
-                          <span className="text-xs text-gray-400">
-                            {field.options.length} choices
-                          </span>
-                        </div>
-
-                        <div className="space-y-2">
-                          {field.options.map((option, optionIndex) => (
-                            <div
-                              key={optionIndex}
-                              className="flex items-center gap-2"
-                            >
-                              {field.type === "radio" && (
-                                <FiCircle
-                                  size={15}
-                                  className="text-gray-400"
-                                />
-                              )}
-
-                              {field.type === "checkbox" && (
-                                <FiCheckSquare
-                                  size={15}
-                                  className="text-gray-400"
-                                />
-                              )}
-
-                              {field.type === "select" && (
-                                <span className="w-4 text-xs text-gray-400">
-                                  {optionIndex + 1}.
-                                </span>
-                              )}
-
-                              <input
-                                type="text"
-                                value={option}
-                                onChange={(e) =>
-                                  updateOption(
-                                    field._key,
-                                    optionIndex,
-                                    e.target.value
-                                  )
-                                }
-                                placeholder={`Option ${optionIndex + 1}`}
-                                className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400"
-                              />
-
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  deleteOption(
-                                    field._key,
-                                    optionIndex
-                                  )
-                                }
-                                disabled={field.options.length <= 1}
-                                title="Delete option"
-                                className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-30"
-                              >
-                                <FiTrash2 size={15} />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => addOption(field._key)}
-                          className="mt-3 flex items-center gap-2 text-xs font-semibold text-blue-600 hover:text-blue-800"
-                        >
-                          <FiPlus size={15} />
-                          Add another option
-                        </button>
-                      </div>
-                    )}
-
-                    {/* FIELD SETTINGS */}
-
-                    <div className="flex flex-wrap items-center gap-x-7 gap-y-3 border-t border-gray-100 pt-3">
-                      <label className="flex cursor-pointer items-center gap-1 text-xs text-gray-600">
-                        <input
-                          type="checkbox"
-                          checked={field.required}
-                          onChange={(e) =>
-                            updateField(field._key, {
-                              required: e.target.checked,
-                            })
-                          }
-                          className="h-4 w-4 accent-blue-600"
-                        />
-                        Required question
-                      </label>
-
-                      <label className="flex cursor-pointer items-center gap-1 text-xs text-gray-600">
-                        <input
-                          type="checkbox"
-                          checked={field.disabled}
-                          onChange={(e) =>
-                            updateField(field._key, {
-                              disabled: e.target.checked,
-                            })
-                          }
-                          className="h-4 w-4 accent-blue-600"
-                        />
-                        Disabled question
-                      </label>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* BOTTOM SAVE BUTTON */}
-
-              {fields.length > 0 && (
-                <div className="mt-7 flex w-full items-center justify-center border-t border-gray-100 pt-5">
-                  <button
-                    type="button"
-                    onClick={saveForm}
-                    disabled={saving}
-                    className="flex items-center gap-2 rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
-                  >
-                    <FiSave size={16} />
-                    {saving ? "Updating..." : "Update Form"}
-                  </button>
+          
+                <div>
+                  <h3 className="font-bold text-slate-800 text-sm">
+                    Color Settings
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Customize your form appearance
+                  </p>
                 </div>
-              )}
-
-              {/* DRAG HELP */}
-
-              {fields.length > 1 && (
-                <p className="mt-5 text-center text-xs text-gray-400">
-                  <FiMenu className="mr-1 inline" size={13} />
-                  Drag the handle beside a question to change its order.
-                </p>
-              )}
+                <div className="flex flex-col items-end">
+            <button onClick={()=>setShowColor(false)} className="text-red-700"><MdCancelPresentation /></button>
+                 <button className="text-sm text-green-700 " onClick={resetColor}>Reset</button> 
+                </div>
+              </div>
             </div>
-          </main>
+          
+            {/* Color Options */}
+            <div className="p-4 space-y-3">
+          
+              {[
+                {
+                  label: "Background Color",
+                  name: "bg_form",
+                  description: "Form background",
+                },
+                {
+                  label: "Title Color",
+                  name: "title_form",
+                  description: "Form heading text",
+                },
+                {
+                  label: "Label Color",
+                  name: "label_form",
+                  description: "Input label text",
+                },
+              ].map((item) => (
+                <div
+                  key={item.name}
+                  className="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/40 transition-all"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-700">
+                      {item.label}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {item.description}
+                    </p>
+                    <p className="text-[11px] text-slate-500 font-mono mt-1 uppercase">
+                      {colorfelds[item.name]}
+                    </p>
+                  </div>
+          
+                  <label className="relative w-11 h-11 shrink-0 cursor-pointer rounded-xl overflow-hidden border-2 border-white shadow-md ring-1 ring-slate-200 hover:ring-indigo-400 transition-all">
+                    <input
+                      type="color"
+                      name={item.name}
+                      value={colorfelds[item.name ]}
+                      onChange={handelColor}
+                      className="absolute inset-0 w-full h-full cursor-pointer opacity-0"
+                    />
+          
+                    <span
+                      className="absolute inset-0 pointer-events-none rounded-lg"
+                      style={{
+                        backgroundColor:
+                          colorfelds[item.name],
+                      }}
+                    />
+                  </label>
+                </div>
+              ))}
+          
+            </div>
+          
+            {/* Footer */}
+            <div className="px-4 py-3 bg-slate-50 border-t border-slate-100">
+              <p className="text-[11px] text-slate-400 text-center">
+                <FiDroplet className="inline mr-1" />
+                Changes reflect in your form preview
+              </p>
+            </div>
+          </div>
+                      <div className="mx-auto max-w-2xl relative overflow-hidden " >
+          
+                      
+             
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+                        <div className="mb-6 border-b border-gray-100 pb-6">
+          
+                          <input
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            placeholder="Form title"
+                            className="pe-5 border-b min-w-[20px] field-sizing-content  border-dashed bg-transparent text-2xl font-bold text-gray-800 outline-none"
+                            style={{color:colorfelds.title_form}}
+                          />
+          
+          
+                         <input
+                            value={leadEmail}
+                            onChange={(e) => setleadEmail(e.target.value)}
+                            placeholder="Lead send Email"
+                            className="w-full pe-5 border-b min-w-[20px] field-sizing-content  border-dashed  mt-3  bg-transparent text-xl font-bold text-green-800 outline-none "   
+                                         />
+          
+          
+                          <textarea
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            placeholder="Write a short description..."
+                            rows={2}
+                            className="mt-3 pe-5 px-2 py-5 border min-w-[20px] field-sizing-content  border-dashed w-full resize-none bg-transparent text-sm text-gray-500 outline-none"
+                          />
+          
+                        </div>
+          
+                        {/* BANNER */}
+          
+                        {showBanner && (
+          
+                          <div className="mb-7 border-b border-gray-100 pb-6 ">
+          
+                            <div className="mb-3 flex items-center justify-between">
+          
+                              <p className="text-sm font-semibold text-gray-700">
+                                Form banner
+                              </p>
+          
+                              <div className="flex items-center gap-3">
+          
+                                {banner && (
+                                  <button
+                                    type="button"
+                                    onClick={removeBanner}
+                                    className="text-xs text-red-500"
+                                  >
+                                    Remove
+                                  </button>
+                                )}
+          
+                                <button
+                                  type="button"
+                                  onClick={() => setShowBanner(false)}
+                                  className="text-gray-400 hover:text-red-500"
+                                >
+                                  <FiX size={18} />
+                                </button>
+          
+                              </div>
+                            </div>
+          
+                            {bannerPreview ? (
+          
+                              <img
+                                src={bannerPreview}
+                                alt="Form banner"
+                                className="h-48 w-full rounded-xl object-cover"
+                              />
+          
+                            ) : (
+          
+                              <label className="flex cursor-pointer flex-col items-center rounded-xl border-2 border-dashed border-gray-200 py-10 hover:bg-gray-50">
+          
+                                <FiImage
+                                  size={28}
+                                  className="mb-3 text-gray-400"
+                                />
+          
+                                <span className="text-sm font-medium">
+                                  Upload banner image
+                                </span>
+          
+                                <span className="mt-1 text-xs text-gray-400">
+                                  PNG, JPG or WEBP · Maximum 5MB
+                                </span>
+          
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleBannerChange}
+                                  className="hidden"
+                                />
+          
+                              </label>
+          
+                            )}
+          
+                          </div>
+          
+                        )}
+          
+                        {/* QUESTIONS */}
+          
+                        <div className="space-y-4">
+          
+                          {fields.length === 0 && (
+          
+                            <div className="flex min-h-64 flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 text-center">
+          
+                              <FiPlus
+                                size={30}
+                                className="mb-3 text-gray-300"
+                              />
+          
+                              <p className="font-medium text-gray-700">
+                                No questions added
+                              </p>
+          
+                              <p className="mt-1 text-sm text-gray-400">
+                                Choose a question type from the sidebar
+                              </p>
+          
+                            </div>
+          
+                          )}
+          
+                          {fields.map((field, index) => (
+          
+                            <div
+                              key={field._key}
+                              onDragOver={(e) =>
+                                handleDragOver(e, field._key)
+                              }
+                              onDrop={(e) =>
+                                handleDrop(e, field._key)
+                              }
+                              className={`rounded-xl border bg-white p-4 transition-all ${
+                                draggingId === field._key
+                                  ? "scale-[0.98] border-blue-400 opacity-40"
+                                  : dragOverId === field._key
+                                  ? "border-blue-500 border-dashed bg-blue-50"
+                                  : "border-gray-200 hover:border-gray-300"
+                              }`}
+                            >
+          
+                              {/* QUESTION HEADER */}
+          
+                              <div className="mb-3 flex items-start gap-3">
+          
+                                {/* DRAG HANDLE */}
+          
+                                <div
+                                  draggable
+                                  onDragStart={(e) =>
+                                    handleDragStart(e, field._key)
+                                  }
+                                  onDragEnd={handleDragEnd}
+                                  className="mt-1 cursor-grab touch-none rounded-md p-1 text-gray-400 hover:bg-gray-100 active:cursor-grabbing"
+                                  title="Drag to reorder"
+                                >
+                                  <FiMenu size={19} />
+                                </div>
+          
+                                <div className="min-w-0 flex-1">
+          
+                                  <div className="mb-1 flex items-center gap-2">
+          
+                                    <span className="text-xs font-medium text-gray-400">
+                                      QUESTION {index + 1}
+                                    </span>
+          
+                                    <span className="rounded bg-gray-100 px-2 py-0.5 text-[10px] font-medium uppercase text-gray-500">
+                                      {field.type}
+                                    </span>
+          
+                                  </div>
+          
+                                  {/* LABEL */}
+          <div className="flex">
+                                  <input
+                                    type="text"
+                                    value={field.label}
+                                    onChange={(e) =>
+                                      updateField(field._key, {
+                                        label: e.target.value,
+                                      })
+                                    }
+                                    placeholder="Enter question"
+                                    className="w-auto min-w-[20px] border-b pe-2 pt-1 border-dashed  field-sizing-content  bg-transparent  text-base font-semibold text-gray-800 outline-none focus:bg-gray-50"
+                                    style={{color:colorfelds.label_form}}
+                                  />
+                                  {field.required && <span className="text-red-700">*</span> }
+             
+             </div>
+                                </div>
+          
+                                {/* ACTIONS */}
+          
+                                <div className="flex items-center gap-1">
+          
+                                  <button
+                                    type="button"
+                                    onClick={() => duplicateField(field)}
+                                    title="Duplicate question"
+                                    className="rounded-lg p-2 text-gray-400 hover:bg-blue-50 hover:text-blue-600"
+                                  >
+                                    <FiCopy size={16} />
+                                  </button>
+          
+                                  <button
+                                    type="button"
+                                    onClick={() => deleteField(field._key)}
+                                    title="Delete question"
+                                    className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                                  >
+                                    <FiTrash2 size={16} />
+                                  </button>
+          
+                                </div>
+          
+                              </div>
+          
+                              {/* PARAGRAPH / DIVIDER */}
+          
+                              {/* {field.type === "paragraph" && (
+          
+                                <div className="mb-4 rounded-lg bg-gray-50 p-3">
+                                  <p className="text-xs text-gray-400">
+                                    Paragraph text
+                                  </p>
+                                  <p className="mt-1 text-sm text-gray-600">
+                                    {field.label}
+                                  </p>
+                                </div>
+          
+                              )} */}
+          
+                              {field.type === "divider" && (
+          
+                                <div className="mb-4 py-3">
+                                  <hr className="border-gray-300" />
+                                </div>
+          
+                              )}
+          
+                              {/* PLACEHOLDER */}
+          
+                              {!OPTIONS_TYPES.includes(field.type) &&
+                                !["date", "time", "datetime", "month", "week", "color", "divider"].includes(field.type) && (
+          
+                                  <input
+                                    type="text"
+                                    value={field.placeholder}
+                                    onChange={(e) =>
+                                      updateField(field._key, {
+                                        placeholder: e.target.value,
+                                      })
+                                    }
+                                    placeholder="Placeholder (optional)"
+                                    className="mb-3 w-full text-gray-600/80 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-gray-300"
+                                  />
+          
+                                )}
+          
+                              {/* PREVIEW */}
+          
+                              {!["password","url","paragraph", "divider","text","email","textarea","number","phone","select","radio","checkbox"].includes(field.type) && (
+          
+                                <div className="mb-4">
+                                  {renderFieldInput(field)}
+                                </div>
+          
+                              )}
+          
+                              {/* OPTIONS EDITOR */}
+          
+                              {OPTIONS_TYPES.includes(field.type) && (
+          
+                                <div className="mb-4 rounded-lg bg-gray-50 p-3">
+          
+                                  <div className="mb-3 flex items-center justify-between">
+          
+                                    <p className="text-xs font-semibold text-gray-600">
+                                      {field.type === "select"
+                                        ? "Dropdown options"
+                                        : field.type === "radio"
+                                        ? "Answer choices"
+                                        : "Checkbox choices"}
+                                    </p>
+          
+                                    <span className="text-xs text-gray-400">
+                                      {field.options.length} choices
+                                    </span>
+          
+                                  </div>
+          
+                                  <div className="space-y-2">
+          
+                                    {field.options.map((option, optionIndex) => (
+          
+                                      <div
+                                        key={optionIndex}
+                                        className="flex items-center gap-2"
+                                      >
+          
+                                        {field.type === "radio" && (
+                                          <FiCircle
+                                            size={15}
+                                            className="text-gray-400"
+                                          />
+                                        )}
+          
+                                        {field.type === "checkbox" && (
+                                          <FiCheckSquare
+                                            size={15}
+                                            className="text-gray-400"
+                                          />
+                                        )}
+          
+                                        {field.type === "select" && (
+                                          <span className="w-4 text-xs text-gray-400">
+                                            {optionIndex + 1}.
+                                          </span>
+                                        )}
+          
+                                        <input
+                                          type="text"
+                                          value={option}
+                                          onChange={(e) =>
+                                            updateOption(
+                                              field._key,
+                                              optionIndex,
+                                              e.target.value
+                                            )
+                                          }
+                                          placeholder={`Option ${optionIndex + 1}`}
+                                          className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400"
+                                        />
+          
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            deleteOption(
+                                              field._key,
+                                              optionIndex
+                                            )
+                                          }
+                                          disabled={field.options.length <= 1}
+                                          title="Delete option"
+                                          className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-30"
+                                        >
+                                          <FiTrash2 size={15} />
+                                        </button>
+          
+                                      </div>
+          
+                                    ))}
+          
+                                  </div>
+          
+                                  <button
+                                    type="button"
+                                    onClick={() => addOption(field._key)}
+                                    className="mt-3 flex items-center gap-2 text-xs font-semibold text-blue-600 hover:text-blue-800"
+                                  >
+                                    <FiPlus size={15} />
+                                    Add another option
+                                  </button>
+          
+                                </div>
+          
+                              )}
+          
+                           
+          
+                              <div className="flex items-center justify- gap-7 border-t border-gray-100 pt-3">
+          
+                                <label className="flex cursor-pointer items-center gap-1 text-xs text-gray-600">
+          
+                                  <input
+                                    type="checkbox"
+                                    checked={field.required}
+                                    onChange={(e) =>
+                                      updateField(field._key, {
+                                        required: e.target.checked,
+                                      })
+                                    }
+                                    className="h-4 w-4 accent-blue-600"
+                                  />
+          
+                                  Required question
+          
+                                </label>
+          
+           <label className="flex cursor-pointer items-center gap-1 text-xs text-gray-600">
+          
+                                  <input
+                                    type="checkbox"
+                                    checked={field.disabled}
+                                    onChange={(e) =>
+                                      updateField(field._key, {
+                                        disabled: e.target.checked,
+                                      })
+                                    }
+                                    className="h-4 w-4 accent-blue-600"
+                                  />
+          
+                                  disabled question
+          
+                                </label>
+          
+          
+                              </div>
+          
+                            </div>
+          
+                          ))}
+                            
+                           {consents.map((item,index)=><div key={index}  className="flex justify-between items-center" >
+                              <div className="flex gap-2 items-center ">
+                              <input type="checkbox" name="" id=""   className=""    />
+                             <input type="text" name="" className=" border-b  " id="" value={item} onChange={(e)=>handelChageConsent(e.target.value,index)} />
+                              </div>
+          
+                              <TiDelete className="text-red-700 cursor-pointer text-xl" onClick={()=>handelDelete(index)} />
+          
+                            </div>)}
+          
+          
+          
+                        </div>
+          
+                        {/* BOTTOM ADD BUTTON */}
+          
+                        {fields.length > 0 && (
+          
+                          <div className="mt-7 border-t border-gray-100 pt-5 flex items-center justify-center w-full ">
+            <button
+                        type="button"
+                        onClick={saveForm}
+                        disabled={saving}
+                        className="flex items-center gap-2 rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
+                      >
+                        <FiSave size={16} />
+                        {saving ? "Saving..." : "Save form"}
+                      </button>
+                           
+          
+                          </div>
+          
+                        )}
+          
+                        {/* DRAG HELP */}
+          
+                        {fields.length > 1 && (
+                          <p className="mt-5 text-center text-xs text-gray-400">
+                            <FiMenu className="mr-1 inline" size={13} />
+                            Drag the handle beside a question to change its order.
+                          </p>
+                        )}
+          
+                      </div>
+          
+                    </main>
         </div>
       </div>
     </div>

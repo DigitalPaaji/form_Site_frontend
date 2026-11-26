@@ -28,14 +28,17 @@ import {
   FiLock,
   FiMenu,
   FiCopy,
+  FiDroplet,
 } from "react-icons/fi";
 
 import { GiVerticalBanner } from "react-icons/gi";
 import { IoText } from "react-icons/io5";
-import { MdOutlineMessage, MdUpdate, MdViewWeek } from "react-icons/md";
+import { MdCancelPresentation, MdOutlineMessage, MdUpdate, MdViewWeek } from "react-icons/md";
 import { BsCalendar2MonthFill } from "react-icons/bs";
 import { IoIosColorPalette } from "react-icons/io";
 import { RxDividerHorizontal } from "react-icons/rx";
+import { SiAuthelia } from "react-icons/si";
+import { TiDelete } from "react-icons/ti";
 
 // ------------------------------------
 // FIELD TYPES
@@ -102,13 +105,19 @@ const Page = () => {
   const [title, setTitle] = useState("Form Title");
   const [description, setDescription] = useState("");
   const [leadEmail, setleadEmail] = useState("");
+const initialColorFelds ={
+  bg_form:"#F7F7F8",
+    label_form:"#364153",
+    title_form:"#252525"
+}
 
+  const [colorfelds,setColorFelds]=useState(initialColorFelds)
   const [fields, setFields] = useState([]);
-
+  const [consents,setConsents]=useState([ ])
   const [banner, setBanner] = useState(null);
   const [bannerPreview, setBannerPreview] = useState("");
   const [showBanner, setShowBanner] = useState(false);
-
+ const [showColor,setShowColor]=useState(false);
 
   const [status, setStatus] = useState("published");
   const [saving, setSaving] = useState(false);
@@ -117,9 +126,7 @@ const Page = () => {
   const [draggingId, setDraggingId] = useState(null);
   const [dragOverId, setDragOverId] = useState(null);
 
-  // ------------------------------------
-  // BANNER CLEANUP
-  // ------------------------------------
+
 
   useEffect(() => {
     return () => {
@@ -139,9 +146,8 @@ const Page = () => {
     setFields((prev) => [...prev, newField]);
   };
 
-  // ------------------------------------
-  // UPDATE FIELD
-  // ------------------------------------
+
+
 
   const updateField = (id, changes) => {
     setFields((prev) =>
@@ -487,6 +493,9 @@ const Page = () => {
   
       formData.append("status", status);
       formData.append("leadEmail", leadEmail);
+      formData.append("formcolors", JSON.stringify(colorfelds));
+      formData.append("consents", JSON.stringify(consents));
+
 
       if (banner) {
         formData.append("banner", banner);
@@ -518,9 +527,29 @@ const Page = () => {
     }
   };
 
-  // ------------------------------------
-  // RENDER
-  // ------------------------------------
+    const handelColor = (e)=>{
+      const {name,value} = e.target;
+      setColorFelds(prev=>({...prev,[name]:value}))
+    }
+    const resetColor=()=>{
+      setColorFelds(initialColorFelds)
+    }
+    const handelChageConsent=(value,index)=>{
+       setConsents((prev) => {
+    const updated = [...prev];
+
+    updated[index] = value;
+
+    return updated;
+  });
+    }
+
+  const handelDelete =(index)=>{
+     const filterConsents = consents.filter((_, i) => i !== index);
+
+    setConsents(filterConsents)
+  }
+   
 
   return (
     <div className="h-screen overflow-auto bg-gray-50 p-4 md:p-7">
@@ -614,18 +643,131 @@ const Page = () => {
                   </button>
                 );
               })}
+         <button
+                type="button"
+                onClick={() => setConsents(prev=>([...prev,`Consent ${consents.length+1}`]))}
+                className="  cursor-pointer col-span-1 flex items-center gap-3 bg-white rounded-lg border border-gray-100 p-3 text-left hover:border-blue-600 hover:bg-blue-200"
+              >
+                <SiAuthelia size={19} />
 
+                <span className="text-sm font-medium">
+                  Add consent 
+                </span>
+              </button>
             </div>
 
           </aside>
 
           {/* FORM AREA */}
 
-          <main className="min-h-[650px] rounded-xl border border-gray-200 bg-white/40 p-5 md:p-8 shadow-2xl ">
+          <main className="min-h-[650px] overflow-hidden rounded-xl relative border border-gray-200  p-5 md:p-8 shadow-2xl "
+            style={{backgroundColor:colorfelds.bg_form}}
+          
+          >
+ {!showColor &&  <button onClick={()=>setShowColor(true)} className="absolute top-2  right-0 text-xl bg-blue-500 px-2 rounded-s-2xl">🎨</button>}
+<div className={`absolute top-0  z-50 w-72 bg-white/95 backdrop-blur-xl border border-slate-200 rounded-2xl shadow-2xl shadow-slate-900/10 ${showColor? "right-4" :"-right-full"} duration-200 `}>
 
-            <div className="mx-auto max-w-2xl " >
+  {/* Header */}
+  <div className="px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-purple-50">
+    <div className="flex items-center gap-3">
+      <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-lg shadow-md shadow-indigo-200">
+        <FiDroplet />
+      </div>
 
-              {/* FORM TITLE */}
+      <div>
+        <h3 className="font-bold text-slate-800 text-sm">
+          Color Settings
+        </h3>
+        <p className="text-xs text-slate-500">
+          Customize your form appearance
+        </p>
+      </div>
+      <div className="flex flex-col items-end">
+  <button onClick={()=>setShowColor(false)} className="text-red-700"><MdCancelPresentation /></button>
+       <button className="text-sm text-green-700 " onClick={resetColor}>Reset</button> 
+      </div>
+    </div>
+  </div>
+
+  {/* Color Options */}
+  <div className="p-4 space-y-3">
+
+    {[
+      {
+        label: "Background Color",
+        name: "bg_form",
+        description: "Form background",
+      },
+      {
+        label: "Title Color",
+        name: "title_form",
+        description: "Form heading text",
+      },
+      {
+        label: "Label Color",
+        name: "label_form",
+        description: "Input label text",
+      },
+    ].map((item) => (
+      <div
+        key={item.name}
+        className="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/40 transition-all"
+      >
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-slate-700">
+            {item.label}
+          </p>
+          <p className="text-xs text-slate-400 mt-0.5">
+            {item.description}
+          </p>
+          <p className="text-[11px] text-slate-500 font-mono mt-1 uppercase">
+            {colorfelds[item.name]}
+          </p>
+        </div>
+
+        <label className="relative w-11 h-11 shrink-0 cursor-pointer rounded-xl overflow-hidden border-2 border-white shadow-md ring-1 ring-slate-200 hover:ring-indigo-400 transition-all">
+          <input
+            type="color"
+            name={item.name}
+            value={colorfelds[item.name ]}
+            onChange={handelColor}
+            className="absolute inset-0 w-full h-full cursor-pointer opacity-0"
+          />
+
+          <span
+            className="absolute inset-0 pointer-events-none rounded-lg"
+            style={{
+              backgroundColor:
+                colorfelds[item.name],
+            }}
+          />
+        </label>
+      </div>
+    ))}
+
+  </div>
+
+  {/* Footer */}
+  <div className="px-4 py-3 bg-slate-50 border-t border-slate-100">
+    <p className="text-[11px] text-slate-400 text-center">
+      <FiDroplet className="inline mr-1" />
+      Changes reflect in your form preview
+    </p>
+  </div>
+</div>
+            <div className="mx-auto max-w-2xl relative overflow-hidden " >
+
+            
+   
+
+
+
+
+
+
+
+
+
 
               <div className="mb-6 border-b border-gray-100 pb-6">
 
@@ -633,7 +775,8 @@ const Page = () => {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Form title"
-                  className="w-full border-0 bg-transparent text-2xl font-bold text-gray-800 outline-none"
+                  className="pe-5 border-b min-w-[20px] field-sizing-content  border-dashed bg-transparent text-2xl font-bold text-gray-800 outline-none"
+                  style={{color:colorfelds.title_form}}
                 />
 
 
@@ -641,7 +784,7 @@ const Page = () => {
                   value={leadEmail}
                   onChange={(e) => setleadEmail(e.target.value)}
                   placeholder="Lead send Email"
-                  className="w-full border-0 mt-3 bg-transparent text-xl font-bold text-green-800 outline-none "   
+                  className="w-full pe-5 border-b min-w-[20px] field-sizing-content  border-dashed  mt-3  bg-transparent text-xl font-bold text-green-800 outline-none "   
                                />
 
 
@@ -650,7 +793,7 @@ const Page = () => {
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Write a short description..."
                   rows={2}
-                  className="mt-3 w-full resize-none border-0 bg-transparent text-sm text-gray-500 outline-none"
+                  className="mt-3 pe-5 px-2 py-5 border min-w-[20px] field-sizing-content  border-dashed w-full resize-none bg-transparent text-sm text-gray-500 outline-none"
                 />
 
               </div>
@@ -817,7 +960,8 @@ const Page = () => {
                             })
                           }
                           placeholder="Enter question"
-                          className="w-auto min-w-[20px]  field-sizing-content border-0 bg-transparent p-1 text-base font-semibold text-gray-800 outline-none focus:bg-gray-50"
+                          className="w-auto min-w-[20px] border-b pe-2 pt-1 border-dashed  field-sizing-content  bg-transparent  text-base font-semibold text-gray-800 outline-none focus:bg-gray-50"
+                          style={{color:colorfelds.label_form}}
                         />
                         {field.required && <span className="text-red-700">*</span> }
    
@@ -1045,6 +1189,18 @@ const Page = () => {
                   </div>
 
                 ))}
+                  
+                 {consents.map((item,index)=><div key={index}  className="flex justify-between items-center" >
+                    <div className="flex gap-2 items-center ">
+                    <input type="checkbox" name="" id=""   className=""    />
+                   <input type="text" name="" className=" border-b  " id="" value={item} onChange={(e)=>handelChageConsent(e.target.value,index)} />
+                    </div>
+
+                    <TiDelete className="text-red-700 cursor-pointer text-xl" onClick={()=>handelDelete(index)} />
+
+                  </div>)}
+
+
 
               </div>
 

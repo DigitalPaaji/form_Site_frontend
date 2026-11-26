@@ -43,12 +43,18 @@ const FormPage = () => {
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
-  // Unique key for each field
   const getFieldKey = (field) => field._id || field.label;
+
+  // Dynamic form colors
+  const colors = {
+    bg_form: formData?.formcolors?.bg_form || "#fff9f0",
+    label_form: formData?.formcolors?.label_form || "#0b6056",
+    title_form: formData?.formcolors?.title_form || "#630303",
+  };
 
   // Image URL
   const getImageUrl = (image) => {
-    if (!image) return "";
+    if (!image || image === "null") return "";
 
     if (image.startsWith("http://") || image.startsWith("https://")) {
       return image;
@@ -57,17 +63,31 @@ const FormPage = () => {
     return `${img_url}${image.startsWith("/") ? "" : "/"}${image}`;
   };
 
-  // Initial value according to field type
+  // Initial value
   const getInitialValue = (field) => {
     if (field.type === "checkbox") {
       return field.options?.length ? [] : false;
     }
 
-    if (field.type === "color") {
-      return "#37345f";
-    }
+    if (field.type === "color") return "#37345f";
 
     return "";
+  };
+
+  // Initialize values including consents
+  const initializeValues = (data) => {
+    const initialValues = {};
+
+    data.fields?.forEach((field) => {
+      initialValues[getFieldKey(field)] =
+        field.defaultValue ?? getInitialValue(field);
+    });
+
+    data.consents?.forEach((consent, index) => {
+      initialValues[`consent_${index}`] = false;
+    });
+
+    return initialValues;
   };
 
   // Fetch form
@@ -84,21 +104,12 @@ const FormPage = () => {
 
       if (data.success && data.formData) {
         setFormData(data.formData);
-
-        const initialValues = {};
-
-        data.formData.fields?.forEach((field) => {
-          const key = getFieldKey(field);
-          initialValues[key] =
-            field.defaultValue ?? getInitialValue(field);
-        });
-
-        setValues(initialValues);
+        setValues(initializeValues(data.formData));
       } else {
         setFormNotFound(true);
       }
     } catch (error) {
-      console.error("Fetch form error:", error);
+      console.error(error);
       setFormNotFound(true);
     } finally {
       setLoading(false);
@@ -109,23 +120,26 @@ const FormPage = () => {
     if (slug) fetchData();
   }, [slug]);
 
-  // Sort fields
-  const fields = useMemo(() => {
-    return [...(formData?.fields || [])];
-  }, [formData]);
+  const fields = useMemo(
+    () => [...(formData?.fields || [])],
+    [formData]
+  );
 
-  // Visible fields
   const activeFields = fields.filter(
     (field) =>
       !field.disabled &&
       !["divider", "paragraph"].includes(field.type)
   );
 
-  // Progress
-  const progress = useMemo(() => {
-    if (!activeFields.length) return 100;
+  const consents = formData?.consents || [];
 
-    const completed = activeFields.filter((field) => {
+  // Progress including consent
+  const progress = useMemo(() => {
+    const total = activeFields.length + consents.length;
+
+    if (!total) return 100;
+
+    const completedFields = activeFields.filter((field) => {
       const value = values[getFieldKey(field)];
 
       if (Array.isArray(value)) return value.length > 0;
@@ -138,10 +152,16 @@ const FormPage = () => {
       );
     }).length;
 
-    return Math.round((completed / activeFields.length) * 100);
-  }, [activeFields, values]);
+    const completedConsents = consents.filter(
+      (_, index) => values[`consent_${index}`] === true
+    ).length;
 
-  // Change value
+    return Math.round(
+      ((completedFields + completedConsents) / total) * 100
+    );
+  }, [activeFields, consents, values]);
+
+  // Change field
   const handleChange = (field, value) => {
     const key = getFieldKey(field);
 
@@ -161,10 +181,23 @@ const FormPage = () => {
     }));
   };
 
+  // Consent change
+  const handleConsentChange = (index, checked) => {
+    setValues((prev) => ({
+      ...prev,
+      [`consent_${index}`]: checked,
+    }));
+
+    setErrors((prev) => ({
+      ...prev,
+      [`consent_${index}`]: "",
+    }));
+  };
+
   // Checkbox options
   const handleCheckboxOption = (field, option, checked) => {
     const key = getFieldKey(field);
-    const current = values[key] || [];
+    const current = Array.isArray(values[key]) ? values[key] : [];
 
     const updated = checked
       ? [...current, option]
@@ -173,7 +206,7 @@ const FormPage = () => {
     handleChange(field, updated);
   };
 
-  // Validation
+  // Field validation
   const validateField = (field, value) => {
     if (field.disabled) return "";
 
@@ -210,17 +243,14 @@ const FormPage = () => {
       }
     }
 
-    if (field.type === "number") {
-      if (Number.isNaN(Number(value))) {
-        return "Please enter a valid number";
-      }
+    if (field.type === "number" && Number.isNaN(Number(value))) {
+      return "Please enter a valid number";
     }
 
     return "";
   };
 
-
-  
+  // Validate complete form
   const validateForm = () => {
     const newErrors = {};
     const allTouched = {};
@@ -228,7 +258,10 @@ const FormPage = () => {
     fields.forEach((field) => {
       const key = getFieldKey(field);
 
-      if (field.disabled || ["divider", "paragraph"].includes(field.type)) {
+      if (
+        field.disabled ||
+        ["divider", "paragraph"].includes(field.type)
+      ) {
         return;
       }
 
@@ -236,8 +269,17 @@ const FormPage = () => {
 
       const error = validateField(field, values[key]);
 
-      if (error) {
-        newErrors[key] = error;
+      if (error) newErrors[key] = error;
+    });
+
+    // Validate all consent checkboxes
+    consents.forEach((consent, index) => {
+      const key = `consent_${index}`;
+
+      allTouched[key] = true;
+
+      if (values[key] !== true) {
+        newErrors[key] = "Please accept this consent to continue";
       }
     });
 
@@ -245,60 +287,6 @@ const FormPage = () => {
     setTouched(allTouched);
 
     return Object.keys(newErrors).length === 0;
-  };
-
-
-
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!validateForm()) {
-      setTimeout(() => {
-        document.querySelector(".lux-field-error")?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-      }, 100);
-
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      setSubmitError("");
-
-      // Keep backend submission keys as field labels
-      const submissionData = {};
-
-      fields.forEach((field) => {
-        if (["divider", "paragraph"].includes(field.type)) return;
-
-        submissionData[field.label] = values[getFieldKey(field)];
-      });
-
-      const response = await axios.post(`${base_url}/user/submit`, {
-        formId: formData._id,
-        submissionData,
-      });
-
-      if (response.data.success) {
-        setSubmitted(true);
-      } else {
-        setSubmitError(
-          response.data.message || "Unable to submit your response."
-        );
-      }
-    } catch (error) {
-      console.error("Submit error:", error);
-
-      setSubmitError(
-        error.response?.data?.message ||
-          "Something went wrong. Please try again."
-      );
-    } finally {
-      setSubmitting(false);
-    }
   };
 
   // Icons
@@ -325,7 +313,7 @@ const FormPage = () => {
     return icons[type] || FiFileText;
   };
 
-  // Common input styles
+  // Input styles
   const getInputClass = (field) => {
     const key = getFieldKey(field);
     const error = touched[key] && errors[key];
@@ -335,7 +323,7 @@ const FormPage = () => {
     }`;
   };
 
-  // Common input props
+  // Common props
   const getCommonProps = (field) => {
     const key = getFieldKey(field);
 
@@ -352,16 +340,14 @@ const FormPage = () => {
     };
   };
 
-  // Render fields
+  // Render dynamic fields
   const renderField = (field) => {
     const key = getFieldKey(field);
     const value = values[key];
     const options = Array.isArray(field.options) ? field.options : [];
-
     const commonProps = getCommonProps(field);
 
     switch (field.type) {
-      // Text
       case "text":
       case "email":
       case "phone":
@@ -374,16 +360,9 @@ const FormPage = () => {
           />
         );
 
-      // Number
       case "number":
-        return (
-          <input
-            {...commonProps}
-            type="number"
-          />
-        );
+        return <input {...commonProps} type="number" />;
 
-      // Textarea
       case "textarea":
         return (
           <textarea
@@ -393,7 +372,6 @@ const FormPage = () => {
           />
         );
 
-      // Date
       case "date":
       case "time":
       case "datetime":
@@ -410,7 +388,6 @@ const FormPage = () => {
           />
         );
 
-      // Color
       case "color":
         return (
           <div className="flex items-center gap-3">
@@ -421,14 +398,12 @@ const FormPage = () => {
               onChange={(e) => handleChange(field, e.target.value)}
               className="h-12 w-16 cursor-pointer rounded-lg border border-gray-200 p-1"
             />
-
             <span className="text-sm text-gray-500">
               {value || "#37345f"}
             </span>
           </div>
         );
 
-      // Select
       case "select":
         return (
           <div className="relative">
@@ -438,9 +413,8 @@ const FormPage = () => {
               onChange={(e) => handleChange(field, e.target.value)}
               className={`${getInputClass(field)} appearance-none pr-10 cursor-pointer`}
             >
-              <option value="">
-                {field.placeholder || "Select an option"}
-              </option>
+              <option value="" disabled>--  select ---</option>
+              
 
               {options.map((option, index) => (
                 <option key={index} value={option}>
@@ -453,7 +427,6 @@ const FormPage = () => {
           </div>
         );
 
-      // Radio - Only one option can be selected
       case "radio":
         return (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -463,9 +436,7 @@ const FormPage = () => {
               return (
                 <label
                   key={index}
-                  className={`lux-choice ${
-                    checked ? "lux-choice-active" : ""
-                  } ${field.disabled ? "opacity-60 cursor-not-allowed" : ""}`}
+                  className={`lux-choice ${checked ? "lux-choice-active" : ""}`}
                 >
                   <input
                     type="radio"
@@ -490,9 +461,7 @@ const FormPage = () => {
           </div>
         );
 
-      // Checkbox - Multiple options or single boolean
       case "checkbox":
-        // Checkbox with options
         if (options.length > 0) {
           const selected = Array.isArray(value) ? value : [];
 
@@ -504,9 +473,7 @@ const FormPage = () => {
                 return (
                   <label
                     key={index}
-                    className={`lux-choice ${
-                      checked ? "lux-choice-active" : ""
-                    } ${field.disabled ? "opacity-60 cursor-not-allowed" : ""}`}
+                    className={`lux-choice ${checked ? "lux-choice-active" : ""}`}
                   >
                     <input
                       type="checkbox"
@@ -537,7 +504,6 @@ const FormPage = () => {
           );
         }
 
-        // Single checkbox
         return (
           <label className="flex cursor-pointer items-center gap-3">
             <input
@@ -556,7 +522,6 @@ const FormPage = () => {
           </label>
         );
 
-      // Paragraph
       case "paragraph":
         return (
           <p className="whitespace-pre-line text-sm leading-7 text-gray-500">
@@ -564,63 +529,115 @@ const FormPage = () => {
           </p>
         );
 
-      // Divider
       case "divider":
         return <div className="my-2 h-px w-full bg-gray-200" />;
 
       default:
-        return (
-          <input
-            {...commonProps}
-            type="text"
-          />
-        );
+        return <input {...commonProps} type="text" />;
     }
   };
 
-useEffect(() => {
-  if (!submitted || !formData) return;
+  // Submit form
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  const timer = setTimeout(() => {
-    const initialValues = {};
+    if (!validateForm()) {
+      setTimeout(() => {
+        document.querySelector(".lux-field-error")?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
 
-    formData.fields?.forEach((field) => {
-      const key = getFieldKey(field);
-      initialValues[key] =
-        field.defaultValue ?? getInitialValue(field);
-    });
+        document.querySelector(".lux-consent-error")?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 100);
 
-    setValues(initialValues);
-    setErrors({});
-    setTouched({});
-    setSubmitError("");
-    setSubmitted(false);
-  }, 3000);
+      return;
+    }
 
-  return () => clearTimeout(timer);
-}, [submitted, formData]);
+    try {
+      setSubmitting(true);
+      setSubmitError("");
+
+      // Dynamic field data
+      const submissionData = {};
+
+      fields.forEach((field) => {
+        if (["divider", "paragraph"].includes(field.type)) return;
+
+        submissionData[field.label] = values[getFieldKey(field)];
+      });
+
+      // Only accepted consents
+      const acceptedConsents = consents.filter(
+        (_, index) => values[`consent_${index}`] === true
+      );
+
+      const response = await axios.post(
+        `${base_url}/user/submit`,
+        {
+          formId: formData._id,
+          submissionData,
+          consents: acceptedConsents,
+        }
+      );
+
+      if (response.data.success) {
+        setSubmitted(true);
+      } else {
+        setSubmitError(
+          response.data.message || "Unable to submit your response."
+        );
+      }
+    } catch (error) {
+      console.error("Submit error:", error);
+
+      setSubmitError(
+        error.response?.data?.message ||
+          "Something went wrong. Please try again."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Reset after success
+  useEffect(() => {
+    if (!submitted || !formData) return;
+
+    const timer = setTimeout(() => {
+      setValues(initializeValues(formData));
+      setErrors({});
+      setTouched({});
+      setSubmitError("");
+      setSubmitted(false);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [submitted, formData]);
+
   if (loading) return <Loder />;
 
   // Not found
   if (formNotFound || !formData) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#f7f7f8] p-5">
-        <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-9 text-center shadow-sm">
-          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-500">
-            <FiAlertCircle size={27} />
-          </div>
+        <div className="w-full max-w-md rounded-2xl border bg-white p-9 text-center shadow-sm">
+          <FiAlertCircle size={30} className="mx-auto mb-5 text-red-500" />
 
           <h1 className="text-2xl font-bold text-gray-900">
             Form not found
           </h1>
 
-          <p className="mt-3 text-sm leading-6 text-gray-500">
+          <p className="mt-3 text-sm text-gray-500">
             This form may have been removed, unpublished or the link is incorrect.
           </p>
 
           <button
             onClick={fetchData}
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#292744] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#403d68]"
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#292744] px-5 py-3 text-sm font-semibold text-white"
           >
             <FiRefreshCw />
             Try Again
@@ -663,8 +680,10 @@ useEffect(() => {
   const bannerUrl = getImageUrl(formData.bannerImage);
 
   return (
-    <main className="min-h-screen bg-[#f7f7f8] px-4 py-8 sm:px-6 sm:py-12">
-
+    <main
+      className="min-h-screen px-4 py-8 sm:px-6 sm:py-12"
+      style={{ backgroundColor: colors.bg_form }}
+    >
       <style>{`
         .lux-input {
           border: 1px solid #e5e7eb;
@@ -680,7 +699,7 @@ useEffect(() => {
 
         .lux-input:focus {
           border-color: #55516f !important;
-          box-shadow: 0 0 0 3px rgba(55, 52, 95, .08);
+          box-shadow: 0 0 0 3px rgba(55,52,95,.08);
           outline: none;
         }
 
@@ -718,22 +737,18 @@ useEffect(() => {
 
         .lux-field-grid {
           display: grid;
-          grid-template-columns: repeat(12, minmax(0, 1fr));
+          grid-template-columns: repeat(12,minmax(0,1fr));
           gap: 25px 20px;
         }
 
         .lux-field {
           min-width: 0;
-          grid-column: span var(--field-span);
+          grid-column: span 12;
         }
 
-        @media(max-width: 640px) {
+        @media(max-width:640px) {
           .lux-field-grid {
             gap: 22px 12px;
-          }
-
-          .lux-field {
-            grid-column: span 12 !important;
           }
         }
       `}</style>
@@ -748,7 +763,7 @@ useEffect(() => {
             </div>
 
             <div>
-              <p className="text-sm font-bold text-[#292744]">
+              <p className="text-sm font-bold" style={{ color: colors.title_form }}>
                 Contact
               </p>
 
@@ -765,7 +780,7 @@ useEffect(() => {
         </div>
 
         {/* Form Card */}
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_12px_45px_rgba(0,0,0,0.045)]">
+        <div className="overflow-hidden rounded-2xl border border-gray-200 shadow-[0_12px_45px_rgba(0,0,0,0.045)]">
 
           {/* Banner */}
           {bannerUrl && (
@@ -773,69 +788,88 @@ useEffect(() => {
               <img
                 src={bannerUrl}
                 alt={formData.title}
-                className="h-[190px] w-full object-cover object-center sm:h-[250px] md:h-[300px]"
+                className="h-[190px] w-full object-cover sm:h-[250px] md:h-[300px]"
               />
             </div>
           )}
 
-          <div className="p-5 sm:p-8 md:p-10">
+          <div
+            className="p-5 sm:p-8 md:p-10"
+            style={{ backgroundColor: colors.bg_form }}
+          >
 
-            {/* Form Title */}
+            {/* Title */}
             <div className="mb-8">
-              <div className="mb-4 inline-flex items-center gap-2 rounded-md bg-[#f4f3f8] px-3 py-1.5 text-[11px] font-semibold text-[#55516f]">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-md bg-white/70 px-3 py-1.5 text-[11px] font-semibold"
+                style={{ color: colors.label_form }}
+              >
                 <FiFileText size={13} />
                 FORM DETAILS
               </div>
 
-              <h1 className="text-2xl font-bold leading-tight tracking-tight text-[#252525] sm:text-3xl">
+              <h1
+                className="text-2xl font-bold leading-tight tracking-tight sm:text-3xl"
+                style={{ color: colors.title_form }}
+              >
                 {formData.title}
               </h1>
 
               {formData.description && (
-                <p className="mt-3 whitespace-pre-line text-sm leading-7 text-gray-500">
+                <p
+                  className="mt-3 whitespace-pre-line text-sm leading-7"
+                  style={{ color: colors.label_form }}
+                >
                   {formData.description}
                 </p>
               )}
             </div>
 
             {/* Progress */}
-            <div className="mb-9 rounded-xl border border-gray-100 bg-[#fafafd] p-4">
+            <div className="mb-9 rounded-xl border border-gray-100 bg-white/70 p-4">
               <div className="mb-3 flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold text-gray-700">
                     Form completion
                   </p>
-
                   <p className="mt-1 text-[11px] text-gray-400">
                     Complete the required information
                   </p>
                 </div>
 
-                <span className="text-sm font-bold text-[#37345f]">
+                <span className="text-sm font-bold" style={{ color: colors.label_form }}>
                   {progress}%
                 </span>
               </div>
 
               <div className="h-1.5 overflow-hidden rounded-full bg-gray-200">
                 <div
-                  className="h-full rounded-full bg-[#37345f] transition-all duration-500"
-                  style={{ width: `${progress}%` }}
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${progress}%`,
+                    backgroundColor: colors.label_form,
+                  }}
                 />
               </div>
             </div>
 
             {/* Section Heading */}
             <div className="mb-7 flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f4f3f8] text-[#55516f]">
+              <div
+                className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/80"
+                style={{ color: colors.label_form }}
+              >
                 <FiFileText size={17} />
               </div>
 
               <div>
-                <h2 className="text-sm font-bold text-gray-800">
+                <h2
+                  className="text-sm font-bold"
+                  style={{ color: colors.title_form }}
+                >
                   Your Information
                 </h2>
 
-                <p className="mt-0.5 text-xs text-gray-400">
+                <p className="mt-0.5 text-xs" style={{ color: colors.label_form }}>
                   Please provide the details below
                 </p>
               </div>
@@ -843,8 +877,9 @@ useEffect(() => {
 
             {/* Form */}
             <form onSubmit={handleSubmit} noValidate>
-              <div className="lux-field-grid">
 
+              {/* Dynamic Fields */}
+              <div className="lux-field-grid">
                 {fields.map((field, index) => {
                   const key = getFieldKey(field);
                   const Icon = getIcon(field.type);
@@ -855,24 +890,19 @@ useEffect(() => {
                     "divider",
                   ].includes(field.type);
 
-                  const span = 12;
-
                   return (
                     <div
                       key={key || index}
-                      className={`lux-field ${
-                        error ? "lux-field-error" : ""
-                      }`}
-                      style={{ "--field-span": span }}
+                      className={`lux-field ${error ? "lux-field-error" : ""}`}
                     >
-                      {/* Label */}
                       {!isContentField && (
                         <div className="mb-2.5 flex items-center justify-between gap-2">
                           <label
                             htmlFor={key}
-                            className="flex items-center gap-2 text-[13px] font-semibold text-gray-700"
+                            className="flex items-center gap-2 text-[13px] font-semibold"
+                            style={{ color: colors.label_form }}
                           >
-                            <Icon size={14} className="text-gray-400" />
+                            <Icon size={14} />
 
                             {field.label}
 
@@ -889,17 +919,17 @@ useEffect(() => {
                         </div>
                       )}
 
-                      {/* Field */}
                       {renderField(field)}
 
-                      {/* Help text */}
                       {field.helpText && field.type !== "paragraph" && (
-                        <p className="mt-2 text-[11px] leading-relaxed text-gray-400">
+                        <p
+                          className="mt-2 text-[11px] leading-relaxed"
+                          style={{ color: colors.label_form }}
+                        >
                           {field.helpText}
                         </p>
                       )}
 
-                      {/* Error */}
                       {error && (
                         <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-red-500">
                           <FiAlertCircle size={13} />
@@ -909,8 +939,102 @@ useEffect(() => {
                     </div>
                   );
                 })}
-
               </div>
+
+              {/* ================================= */}
+              {/* CONSENTS SECTION */}
+              {/* ================================= */}
+
+              {consents.length > 0 && (
+                <div className="mt-9 border-t border-gray-200 pt-7">
+
+                  <div className="mb-5 flex items-center gap-3">
+                    <div
+                      className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/80"
+                      style={{ color: colors.label_form }}
+                    >
+                      <FiShield size={19} />
+                    </div>
+
+                    <div>
+                      <h2
+                        className="text-base font-bold"
+                        style={{ color: colors.title_form }}
+                      >
+                        Consent & Agreements
+                      </h2>
+
+                      <p
+                        className="mt-1 text-xs"
+                        style={{ color: colors.label_form }}
+                      >
+                        Please read and accept the following agreements.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {consents.map((consent, index) => {
+                      const key = `consent_${index}`;
+                      const checked = values[key] === true;
+                      const error = touched[key] && errors[key];
+
+                      return (
+                        <div
+                          key={index}
+                          className={`lux-consent-error rounded-xl border p-4 transition-all ${
+                            checked
+                              ? "border-green-300 bg-green-50/60"
+                              : error
+                              ? "border-red-300 bg-red-50/40"
+                              : "border-gray-200 bg-white/80 hover:border-gray-300"
+                          }`}
+                        >
+                          <label className="flex cursor-pointer items-start gap-3">
+
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) =>
+                                handleConsentChange(
+                                  index,
+                                  e.target.checked
+                                )
+                              }
+                              className="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-green-600"
+                            />
+
+                            <span
+                              className="text-sm leading-6 font-medium"
+                              style={{ color: colors.label_form }}
+                            >
+                              {consent}
+                            </span>
+
+                            {checked && (
+                              <FiCheckCircle className="ml-auto mt-1 shrink-0 text-green-600" />
+                            )}
+                          </label>
+
+                          {error && (
+                            <p className="mt-3 flex items-center gap-2 text-xs font-medium text-red-500">
+                              <FiAlertCircle size={13} />
+                              {error}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <p
+                    className="mt-3 text-[11px]"
+                    style={{ color: colors.label_form }}
+                  >
+                    * All agreements must be accepted before submitting.
+                  </p>
+                </div>
+              )}
 
               {/* Submission Error */}
               {submitError && (
@@ -932,20 +1056,28 @@ useEffect(() => {
               )}
 
               {/* Footer */}
-              <div className="mt-9 border-t border-gray-100 pt-6">
+              <div className="mt-9 border-t border-gray-200 pt-6">
                 <div className="flex flex-col-reverse gap-5 sm:flex-row sm:items-center sm:justify-between">
 
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-100 bg-gray-50 text-gray-500">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-100 bg-white/80"
+                      style={{ color: colors.label_form }}
+                    >
                       <FiShield size={17} />
                     </div>
 
                     <div>
-                      <p className="text-xs font-semibold text-gray-700">
+                      <p
+                        className="text-xs font-semibold"
+                        style={{ color: colors.title_form }}
+                      >
                         Your information is secure
                       </p>
 
-                      <p className="mt-1 text-[10px] text-gray-400">
+                      <p
+                        className="mt-1 text-[10px]"
+                        style={{ color: colors.label_form }}
+                      >
                         Your details are submitted confidentially
                       </p>
                     </div>
@@ -954,7 +1086,8 @@ useEffect(() => {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="inline-flex w-full min-w-[180px] items-center justify-center gap-3 rounded-xl bg-[#37345f] px-7 py-3.5 text-sm font-semibold text-white transition hover:bg-[#292744] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                    className="inline-flex w-full min-w-[180px] items-center justify-center gap-3 rounded-xl px-7 py-3.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                    style={{ backgroundColor: colors.label_form }}
                   >
                     {submitting ? (
                       <>
@@ -985,7 +1118,8 @@ useEffect(() => {
                 href="https://digitalpaaji.com/"
                 target="_blank"
                 rel="noreferrer"
-                className="font-bold text-[#55516f]"
+                className="font-bold"
+                style={{ color: colors.label_form }}
               >
                 Digital Paaji
               </a>
@@ -1000,6 +1134,7 @@ useEffect(() => {
             </span>
           </div>
         </div>
+
       </div>
     </main>
   );
